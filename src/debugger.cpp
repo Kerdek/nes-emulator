@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string_view>
 
+#include <fmt/ostream.h>
 #include <fmt/format.h>
 
 namespace nes {

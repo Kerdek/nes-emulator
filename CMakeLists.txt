@@ -2,14 +2,15 @@ cmake_minimum_required(VERSION 3.9)
 
 project(nes-emulator VERSION 1.0.0)
 
+SET(CMAKE_CXX_COMPILER g++-8)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 
 ######################
 #    Dependencies    #
 ######################
 
-find_package(fmt 5.3 REQUIRED)
-find_package(SDL2 2.0 REQUIRED)
+find_package(fmt REQUIRED)
+find_package(SDL2 REQUIRED)
 
 include_directories("include")
 include_directories("lib/include")
@@ -77,4 +78,4 @@ if(UNIX)
     endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} fmt::fmt-header-only SDL2::SDL2)
+target_link_libraries(${PROJECT_NAME} fmt SDL2)
