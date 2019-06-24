@@ -122,14 +122,14 @@ enum cpu_map {
 };
 
 enum ppu_map {
-  PPUCTRL,
-  PPUMASK,
-  PPUSTATUS,
-  OAMADDR,
-  OAMDATA,
-  PPUSCROLL,
-  PPUADDR,
-  PPUDATA
+  PPUCTRL = 0x2000,
+  PPUMASK = 0x2001,
+  PPUSTATUS = 0x2002,
+  OAMADDR = 0x2003,
+  OAMDATA = 0x2004,
+  PPUSCROLL = 0x2005,
+  PPUADDR = 0x2006,
+  PPUDATA = 0x2007
 };
 
 template <auto Operation> int get_cpu_map(const uint16_t);
