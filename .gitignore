@@ -2,4 +2,4 @@
 **/.vscode/
 **/build/ 
 **/bin/
-**/roms/CMakeCache.txt
+**/roms/

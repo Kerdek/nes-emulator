@@ -16,14 +16,15 @@ void cartridge::set_bus(nes::bus& ref)
   this->bus = &ref;
 }
 
-void cartridge::load(const std::filesystem::path& rom_file)
+void cartridge::load(const std::filesystem::path & rom_file)
 {
   using namespace mirroring;
 
   std::ifstream rom(rom_file, std::ios::binary);
 
-  if (!rom) {
-    throw std::runtime_error("Can't open the ROM");
+  if (!rom)
+  {
+		throw std::runtime_error(std::string{ "Failed to open the ROM \"" } + std::filesystem::weakly_canonical(rom_file).c_str() + "\"");
   }
 
   std::array<uint8_t, 16> header;

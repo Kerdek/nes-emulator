@@ -10,8 +10,9 @@
 #include "log.h"
 #include "ppu.h"
 
-int main()
+int main(int argc, char ** argv)
 {
+	if(argc != 2) throw std::runtime_error{ "Invalid number of arguments."};
   std::ofstream log_file{"nes-emulator.log"};
 
   nes::log::get().set_stream(log_file);
@@ -41,7 +42,7 @@ int main()
   controller.set_bus(bus);
   emulator.set_bus(bus);
 
-  cartridge.load("../roms/ff.nes");
+  cartridge.load(argv[1]);
   cpu.power_on();
   ppu.power_on();
   apu.power_on();

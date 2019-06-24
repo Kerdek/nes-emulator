@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.9)
 
 project(nes-emulator VERSION 1.0.0)
 
-SET(CMAKE_CXX_COMPILER g++-8)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 
 ######################
