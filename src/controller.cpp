@@ -1,30 +1,29 @@
 #include "controller.h"
 
-namespace nes {
-void controller::set_bus(nes::bus& ref)
+namespace nes
 {
-  this->bus = &ref;
-}
+  controller::controller(platform::input & input) :
+    input{ input }
+  { }
 
-uint8_t controller::read(const size_t port)
-{
-  if (strobe) {
-    return 0x40 | (this->bus->get_controller(port) & 1);  // 1 == A
+  uint8_t controller::read(const size_t port)
+  {
+    if (strobe) return 0x40 | (input.get_controller(port) & 1);  // 1 == A
+
+    const uint8_t status = (controller_bits[port] & 1) | 0x40;
+    controller_bits[port] >>= 1;
+
+    return status;
   }
 
-  const uint8_t status = (controller_bits[port] & 1) | 0x40;
-  controller_bits[port] >>= 1;
+  void controller::write(const bool signal)
+  {
+    if (strobe && !signal)
+    {
+      controller_bits[0] = input.get_controller(0);
+      controller_bits[1] = input.get_controller(1);
+    }
 
-  return status;
-}
-
-void controller::write(const bool signal)
-{
-  if (strobe && !signal) {
-    controller_bits[0] = this->bus->get_controller(0);
-    controller_bits[1] = this->bus->get_controller(1);
+    strobe = signal;
   }
-
-  strobe = signal;
 }
-}  // namespace nes

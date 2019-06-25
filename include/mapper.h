@@ -3,43 +3,49 @@
 #include <array>
 #include <vector>
 
-#include "bus.h"
 #include "types.h"
 
-namespace nes {
-class mapper {
-public:
-  mapper(
-      const nes::cartridge_info&,
-      const std::vector<uint8_t>&,
-      const std::vector<uint8_t>&);
-  virtual ~mapper() = default;
+namespace nes
+{
+  class mapper
+  {
+    mapper(mapper const &) = delete;
+    mapper(mapper &&) = delete;
+    mapper & operator=(mapper const &) = delete;
+    mapper & operator=(mapper &&) = delete;
 
-  virtual void reset() = 0;
+  protected:
+    void set_mirroring(const int);
 
-  void set_bus(nes::bus&);
+    nes::ppu & ppu;
 
-  uint8_t prg_read(const uint16_t) const;
-  uint8_t chr_read(const uint16_t) const;
+    nes::cartridge_info const & info;
+    std::vector<uint8_t> prg;
+    std::vector<uint8_t> chr;
 
-  virtual void prg_write(const uint16_t, const uint8_t);
-  virtual void chr_write(const uint16_t, const uint8_t);
+    std::vector<uint8_t> prg_ram;
 
-  template <auto> void set_prg_map(int, int);
-  template <auto> void set_chr_map(int, int);
+    std::array<size_t, 4> prg_map{};
+    std::array<size_t, 8> chr_map{};
 
-protected:
-  void set_mirroring(const int);
+  public:
+    mapper(
+        nes::ppu & ppu,
+        nes::cartridge_info && info,
+        std::vector<uint8_t> && prg,
+        std::vector<uint8_t> && chr);
 
-  const nes::cartridge_info& info;
+    virtual ~mapper() = default;
 
-  std::vector<uint8_t> prg;
-  std::vector<uint8_t> prg_ram;
-  std::vector<uint8_t> chr;
+    virtual void reset() = 0;
 
-  std::array<size_t, 4> prg_map{};
-  std::array<size_t, 8> chr_map{};
+    virtual void prg_write(const uint16_t, const uint8_t);
+    virtual void chr_write(const uint16_t, const uint8_t);
 
-  nes::bus* bus = nullptr;
-};
-}  // namespace nes
+    uint8_t prg_read(const uint16_t) const;
+    uint8_t chr_read(const uint16_t) const;
+
+    template <auto size> void set_prg_map(int, int);
+    template <auto size> void set_chr_map(int, int);
+  };
+}

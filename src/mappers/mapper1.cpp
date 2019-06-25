@@ -1,95 +1,116 @@
 #include "mappers/mapper1.h"
+#include "ppu.h"
 
-namespace nes {
-mapper1::mapper1(
-    const nes::cartridge_info&  info_in,
-    const std::vector<uint8_t>& prg_in,
-    const std::vector<uint8_t>& chr_in)
-  : mapper(info_in, std::move(prg_in), std::move(chr_in))
-{}
-
-void mapper1::reset()
+namespace nes
 {
-  write_counter = 0;
-  shift_reg     = 0;
+  mapper1::mapper1(
+      nes::ppu & ppu,
+      nes::cartridge_info && info,
+      std::vector<uint8_t> && prg,
+      std::vector<uint8_t> && chr) :
+    mapper{ ppu, std::move(info), std::move(prg), std::move(chr) }
+  { }
 
-  control    = 0x0C;
-  chr_bank_0 = 0;
-  chr_bank_1 = 0;
-  prg_bank   = 0;
+  void mapper1::reset()
+  {
+    write_counter = 0;
+    shift_reg     = 0;
 
-  this->apply();
-}
+    control    = 0x0C;
+    chr_bank_0 = 0;
+    chr_bank_1 = 0;
+    prg_bank   = 0;
 
-void mapper1::apply()
-{
-  using namespace mirroring;
+    apply();
+  }
 
-  if (control & 0b1000) {
-    // 16KB PRG-ROM
-    if (control & 0b100) {
-      // Switchable or fixed to the first bank
-      set_prg_map<16>(0, prg_bank & 0xF);
-      set_prg_map<16>(1, 0xF);
-    } else {
-      // Fixed to the last bank or switchable
-      set_prg_map<16>(0, 0);
-      set_prg_map<16>(1, prg_bank & 0xF);
+  void mapper1::apply()
+  {
+    using namespace mirroring;
+
+    if (control & 0b1000)
+    {
+      // 16KB PRG-ROM
+      if (control & 0b100)
+      {
+        // Switchable or fixed to the first bank
+        set_prg_map<16>(0, prg_bank & 0xF);
+        set_prg_map<16>(1, 0xF);
+      }
+      else
+      {
+        // Fixed to the last bank or switchable
+        set_prg_map<16>(0, 0);
+        set_prg_map<16>(1, prg_bank & 0xF);
+      }
     }
-  } else {
-    // 32KB PRG-ROM
-    set_prg_map<32>(0, (prg_bank & 0xF) >> 1);
+    else
+    {
+      // 32KB PRG-ROM
+      set_prg_map<32>(0, (prg_bank & 0xF) >> 1);
+    }
+
+    if (control & 0b10000)
+    {
+      // 4KB CHR-ROM
+      set_chr_map<4>(0, chr_bank_0);
+      set_chr_map<4>(1, chr_bank_1);
+    }
+    else
+    {
+      // 8KB CHR-ROM
+      set_chr_map<8>(0, chr_bank_0 >> 1);
+    }
+
+    switch (control & 0b11)
+    {
+      case 2: ppu.set_mirroring(Vertical); break;
+      case 3: ppu.set_mirroring(Horizontal); break;
+    }
   }
 
-  if (control & 0b10000) {
-    // 4KB CHR-ROM
-    set_chr_map<4>(0, chr_bank_0);
-    set_chr_map<4>(1, chr_bank_1);
-  } else {
-    // 8KB CHR-ROM
-    set_chr_map<8>(0, chr_bank_0 >> 1);
-  }
-
-  switch (control & 0b11) {
-    case 2: this->bus->set_mirroring(Vertical); break;
-    case 3: this->bus->set_mirroring(Horizontal); break;
-  }
-}
-
-void mapper1::prg_write(const uint16_t addr, const uint8_t value)
-{
-  if (addr < 0x8000) {
-    prg_ram[addr - 0x6000] = value;
-  } else if (addr & 0x8000) {
-    if (value & 0x80) {  // Reset
-      control |= 0x0C;
-      write_counter = 0;
-      shift_reg     = 0;
-
-      this->apply();
-    } else {
-      shift_reg = ((value & 1) << 4) | (shift_reg >> 1);
-      ++write_counter;
-
-      if (write_counter == 5) {
-        switch ((addr >> 13) & 0x3) {
-          case 0: control = shift_reg; break;
-          case 1: chr_bank_0 = shift_reg; break;
-          case 2: chr_bank_1 = shift_reg; break;
-          case 3: prg_bank = shift_reg; break;
-        }
-
+  void mapper1::prg_write(const uint16_t addr, const uint8_t value)
+  {
+    if (addr < 0x8000)
+    {
+      prg_ram[addr - 0x6000] = value;
+    }
+    else if (addr & 0x8000)
+    {
+      if (value & 0x80)  // Reset
+      {
+        control |= 0x0C;
         write_counter = 0;
         shift_reg     = 0;
 
-        this->apply();
+        apply();
+      }
+      else
+      {
+        shift_reg = ((value & 1) << 4) | (shift_reg >> 1);
+        ++write_counter;
+
+        if (write_counter == 5)
+        {
+          switch ((addr >> 13) & 0x3)
+          {
+            case 0: control = shift_reg; break;
+            case 1: chr_bank_0 = shift_reg; break;
+            case 2: chr_bank_1 = shift_reg; break;
+            case 3: prg_bank = shift_reg; break;
+          }
+
+          write_counter = 0;
+          shift_reg     = 0;
+
+          apply();
+        }
       }
     }
   }
-}
 
-void mapper1::chr_write(const uint16_t addr, const uint8_t value)
-{
-  chr[addr] = value;
+  void mapper1::chr_write(const uint16_t addr, const uint8_t value)
+  {
+    chr[addr] = value;
+  }
 }
-}  // namespace nes

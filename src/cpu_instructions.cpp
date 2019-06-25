@@ -1,9 +1,9 @@
 #include "cpu.h"
+#include "log.h"
 
 #include <iostream>
 #include <stdexcept>
 
-#include "log.h"
 
 using namespace nes::addressing_mode;
 
@@ -280,8 +280,9 @@ void cpu::execute()
     case 0x7B: return RRA<AbsoluteY>();
     case 0x7F: return RRA<AbsoluteX>();
 
-    default: {
-      LOG(log::Error) << "Invalid opcode: " << +opcode;
+    default:
+    {
+      LOG(platform::log::Error) << "Invalid opcode: " << +opcode;
       throw std::runtime_error("Invalid opcode");
       return;
     }

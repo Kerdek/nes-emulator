@@ -1,16 +1,19 @@
 #include "timer.h"
 
-namespace nes {
-float timer::elapsed_time()
+namespace nes
 {
-  const auto end = std::chrono::high_resolution_clock::now();
-  const std::chrono::duration<float> elapsed = end - this->start;
+  timer::timer() :
+    start { std::chrono::high_resolution_clock::now() }
+  { }
+  float timer::elapsed_time()
+  {
+    const auto end = std::chrono::high_resolution_clock::now();
+    const std::chrono::duration<float> elapsed = end - start;
 
-  return elapsed.count();
+    return elapsed.count();
+  }
+  void timer::restart()
+  {
+    start = std::chrono::high_resolution_clock::now();
+  }
 }
-
-void timer::restart()
-{
-  this->start = std::chrono::high_resolution_clock::now();
-}
-}  // namespace nes

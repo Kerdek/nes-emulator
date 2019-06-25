@@ -1,22 +1,29 @@
 #pragma once
 
-#include <array>
-
-#include "bus.h"
 #include "types.h"
 
-namespace nes {
-class controller {
-public:
-  void set_bus(nes::bus&);
+#include "input.h"
 
-  uint8_t read(const size_t);
-  void    write(const bool);
+#include <array>
 
-private:
-  nes::bus* bus = nullptr;
+namespace nes
+{
+  class controller
+  {
+    platform::input & input;
 
-  bool                   strobe = false;   // strobe latch
-  std::array<uint8_t, 2> controller_bits{};  // shift registers
-};
-}  // namespace nes
+    bool strobe = false;   // strobe latch
+    std::array<uint8_t, 2> controller_bits{};  // shift registers
+
+    controller(controller const &) = delete;
+    controller(controller &&) = delete;
+    controller & operator=(controller const &) = delete;
+    controller & operator=(controller &&) = delete;
+
+  public:
+    controller(platform::input & input);
+
+    uint8_t read(const size_t);
+    void write(const bool);
+  };
+}

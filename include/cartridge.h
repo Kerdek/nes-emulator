@@ -1,28 +1,33 @@
 #pragma once
 
+#include "mapper.h"
+
 #include <filesystem>
 #include <memory>
 
-#include "bus.h"
-#include "mapper.h"
-#include "types.h"
+namespace nes
+{
+  class cartridge
+  {
+    nes::ppu & ppu;
 
-namespace nes {
-class cartridge {
-public:
-  void set_bus(nes::bus&);
+    nes::cartridge_info          info{};
+    std::unique_ptr<nes::mapper> mapper = nullptr;
 
-  void load(const std::filesystem::path&);
+    cartridge(cartridge const &) = delete;
+    cartridge(cartridge &&) = delete;
+    cartridge & operator=(apu const &) = delete;
+    cartridge & operator=(apu &&) = delete;
 
-  uint8_t prg_read(const uint16_t) const;
-  uint8_t chr_read(const uint16_t) const;
+  public:
+    cartridge(nes::ppu & ppu);
 
-  void prg_write(const uint16_t, const uint8_t);
-  void chr_write(const uint16_t, const uint8_t);
+    void load(const std::filesystem::path&);
 
-private:
-  nes::bus*                    bus = nullptr;
-  nes::cartridge_info          info{};
-  std::unique_ptr<nes::mapper> mapper = nullptr;
-};
-}  // namespace nes
+    uint8_t prg_read(const uint16_t) const;
+    uint8_t chr_read(const uint16_t) const;
+
+    void prg_write(const uint16_t, const uint8_t);
+    void chr_write(const uint16_t, const uint8_t);
+  };
+}

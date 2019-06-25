@@ -39,7 +39,6 @@ set(GNU_FLAGS
     -Wextra
     -pedantic
     -Wuseless-cast
-    -Wshadow
     -Wformat=2
     -Wdisabled-optimization
 )

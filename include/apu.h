@@ -1,21 +1,22 @@
 #pragma once
 
-#include "bus.h"
 #include "types.h"
 
-namespace nes {
-class apu {
-public:
-  void set_bus(nes::bus&);
+namespace nes
+{
+  class apu
+  {
+    apu(apu const &) = delete;
+    apu(apu &&) = delete;
+    apu & operator=(apu const &) = delete;
+    apu & operator=(apu &&) = delete;
+  public:
+    apu();
+    void reset();
 
-  void power_on();
+    uint8_t read(const int);
+    void write(const int, uint16_t, uint8_t);
 
-  uint8_t read(const int);
-  void    write(const int, uint16_t, uint8_t);
-
-  void run_frame(int);
-
-private:
-  nes::bus* bus = nullptr;
-};
-}  // namespace nes
+    void run_frame(int);
+  };
+}

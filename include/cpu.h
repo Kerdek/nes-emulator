@@ -1,202 +1,210 @@
 #pragma once
 
-#include <array>
-
-#include "bus.h"
 #include "types.h"
 
-namespace nes {
+#include <array>
 
-class cpu {
-public:
-  void set_bus(nes::bus&);
-  void power_on();
-  void reset();
+namespace nes
+{
+  class cpu
+  {
+    nes::ppu & ppu;
+    nes::apu & apu;
+    nes::controller & controller;
+    nes::cartridge & cartridge;
 
-  void dma_oam(const uint8_t);
-  void set_nmi(const bool = true);
-  void set_irq(const bool = true);
+    cpu(cpu const &) = delete;
+    cpu(cpu &&) = delete;
+    cpu & operator=(cpu const &) = delete;
+    cpu & operator=(cpu &&) = delete;
 
-  void run_frame();
+  public:
+    cpu(nes::ppu & ppu, nes::apu & apu, nes::controller & controller, nes::cartridge & cartridge);
 
-  friend class debugger;
+    void reset();
 
-private:
-  nes::bus* bus = nullptr;
+    void dma_oam(const uint8_t);
+    void set_nmi(const bool = true);
+    void set_irq(const bool = true);
 
-  nes::state                 state;
-  std::array<uint8_t, 0x800> ram = {};
+    void run_frame();
 
-  void tick();
+    friend class debugger;
 
-  uint8_t read(const uint16_t) const;
-  void    write(const uint16_t, const uint8_t);
+  private:
 
-  uint8_t memory_read(const uint16_t);
-  void    memory_write(const uint16_t, const uint8_t);
+    nes::state                 state;
+    std::array<uint8_t, 0x800> ram = {};
 
-  uint8_t peek(const uint16_t addr) const;
+    void tick();
 
-  uint16_t peek_imm() const;
-  uint16_t peek_rel() const;
-  uint16_t peek_zp() const;
-  uint16_t peek_zpx() const;
-  uint16_t peek_zpy() const;
-  uint16_t peek_ab() const;
-  uint16_t peek_abx() const;
-  uint16_t peek_aby() const;
-  uint16_t peek_ind() const;
-  uint16_t peek_indx() const;
-  uint16_t peek_indy() const;
+    uint8_t read(const uint16_t) const;
+    void    write(const uint16_t, const uint8_t);
 
-  int elapsed() const;
+    uint8_t memory_read(const uint16_t);
+    void    memory_write(const uint16_t, const uint8_t);
 
-  const int total_cycles     = 29781;
-  int       remaining_cycles = 0;
+    uint8_t peek(const uint16_t addr) const;
 
-  //
-  // All functions defined here are
-  // implemented in cpu_instructions.cpp
-  //
+    uint16_t peek_imm() const;
+    uint16_t peek_rel() const;
+    uint16_t peek_zp() const;
+    uint16_t peek_zpx() const;
+    uint16_t peek_zpy() const;
+    uint16_t peek_ab() const;
+    uint16_t peek_abx() const;
+    uint16_t peek_aby() const;
+    uint16_t peek_ind() const;
+    uint16_t peek_indx() const;
+    uint16_t peek_indy() const;
 
-  void execute();
+    int elapsed() const;
 
-  /* Instructions */
+    const int total_cycles     = 29781;
+    int       remaining_cycles = 0;
 
-  //
-  // Auxiliary
-  //
+    //
+    // All functions defined here are
+    // implemented in cpu_instructions.cpp
+    //
 
-  template <auto Mode> uint16_t get_operand();
+    void execute();
 
-  void    add(const uint8_t);
-  uint8_t shift_left(const uint8_t);   // Arithmetic left shift
-  uint8_t shift_right(const uint8_t);  // Logical right shift
-  uint8_t rotate_left(const uint8_t);
-  uint8_t rotate_right(const uint8_t);
+    /* Instructions */
 
-  void compare(const uint8_t, const uint8_t);
+    //
+    // Auxiliary
+    //
 
-  void branch(const bool);
+    template <auto Mode> uint16_t get_operand();
 
-  void    push(const uint8_t);
-  uint8_t pop();
+    void    add(const uint8_t);
+    uint8_t shift_left(const uint8_t);   // Arithmetic left shift
+    uint8_t shift_right(const uint8_t);  // Logical right shift
+    uint8_t rotate_left(const uint8_t);
+    uint8_t rotate_right(const uint8_t);
 
-  bool crosses_page(const uint16_t, const uint8_t) const;
-  bool crosses_page(const uint16_t, const int8_t) const;
+    void compare(const uint8_t, const uint8_t);
 
-  //
-  // Storage
-  //
+    void branch(const bool);
 
-  template <auto Mode> void LDA();
-  template <auto Mode> void LDX();
-  template <auto Mode> void LDY();
+    void    push(const uint8_t);
+    uint8_t pop();
 
-  template <auto Mode> void STA();
-  template <auto Mode> void STX();
-  template <auto Mode> void STY();
+    bool crosses_page(const uint16_t, const uint8_t) const;
+    bool crosses_page(const uint16_t, const int8_t) const;
 
-  void TAX();
-  void TAY();
-  void TSX();
-  void TXA();
-  void TXS();
-  void TYA();
+    //
+    // Storage
+    //
 
-  //
-  // Math
-  //
+    template <auto Mode> void LDA();
+    template <auto Mode> void LDX();
+    template <auto Mode> void LDY();
 
-  template <auto Mode> void ADC();
-  template <auto Mode> void SBC();
-  template <auto Mode> void INC();
-  template <auto Mode> void DEC();
-  void                      INX();
-  void                      INY();
-  void                      DEX();
-  void                      DEY();
+    template <auto Mode> void STA();
+    template <auto Mode> void STX();
+    template <auto Mode> void STY();
 
-  //
-  // Bitwise
-  //
+    void TAX();
+    void TAY();
+    void TSX();
+    void TXA();
+    void TXS();
+    void TYA();
 
-  template <auto Mode> void AND();
-  template <auto Mode> void ORA();
-  template <auto Mode> void EOR();
-  template <auto Mode> void LSR();
-  template <auto Mode> void ASL();
-  template <auto Mode> void ROL();
-  template <auto Mode> void ROR();
+    //
+    // Math
+    //
 
-  //
-  // Flags
-  //
+    template <auto Mode> void ADC();
+    template <auto Mode> void SBC();
+    template <auto Mode> void INC();
+    template <auto Mode> void DEC();
+    void                      INX();
+    void                      INY();
+    void                      DEX();
+    void                      DEY();
 
-  void CLC();
-  void CLD();
-  void CLI();
-  void CLV();
-  void SEC();
-  void SED();
-  void SEI();
+    //
+    // Bitwise
+    //
 
-  template <auto Mode> void CMP();
-  template <auto Mode> void CPX();
-  template <auto Mode> void CPY();
-  template <auto Mode> void BIT();
+    template <auto Mode> void AND();
+    template <auto Mode> void ORA();
+    template <auto Mode> void EOR();
+    template <auto Mode> void LSR();
+    template <auto Mode> void ASL();
+    template <auto Mode> void ROL();
+    template <auto Mode> void ROR();
 
-  //
-  // Jumps and branches
-  //
+    //
+    // Flags
+    //
 
-  template <auto Mode> void JMP();
-  void                      JSR();
-  void                      RTS();
-  void                      RTI();
+    void CLC();
+    void CLD();
+    void CLI();
+    void CLV();
+    void SEC();
+    void SED();
+    void SEI();
 
-  void BCC();
-  void BCS();
-  void BEQ();
-  void BMI();
-  void BNE();
-  void BPL();
-  void BVC();
-  void BVS();
+    template <auto Mode> void CMP();
+    template <auto Mode> void CPX();
+    template <auto Mode> void CPY();
+    template <auto Mode> void BIT();
 
-  //
-  // Stack
-  //
+    //
+    // Jumps and branches
+    //
 
-  void PHA();
-  void PLA();
-  void PHP();
-  void PLP();
+    template <auto Mode> void JMP();
+    void                      JSR();
+    void                      RTS();
+    void                      RTI();
 
-  //
-  // System
-  //
+    void BCC();
+    void BCS();
+    void BEQ();
+    void BMI();
+    void BNE();
+    void BPL();
+    void BVC();
+    void BVS();
 
-  void INT_NMI();
-  void INT_RST();
-  void INT_IRQ();
-  void INT_BRK();
+    //
+    // Stack
+    //
 
-  void NOP();
+    void PHA();
+    void PLA();
+    void PHP();
+    void PLP();
 
-  //
-  // Unofficial instructions
-  //
+    //
+    // System
+    //
 
-  template <auto Mode> void NOP();
-  template <auto Mode> void LAX();  // LDA then TXA
-  template <auto Mode> void SAX();  // A & X
-  template <auto Mode> void DCP();  // DEC then CMP
-  template <auto Mode> void ISB();  // INC then SBC
-  template <auto Mode> void SLO();  // ASL then ORA
-  template <auto Mode> void RLA();  // ROL then AND
-  template <auto Mode> void SRE();  // LSR then EOR
-  template <auto Mode> void RRA();  // ROR then ADC
-};
+    void INT_NMI();
+    void INT_RST();
+    void INT_IRQ();
+    void INT_BRK();
 
-}  // namespace nes
+    void NOP();
+
+    //
+    // Unofficial instructions
+    //
+
+    template <auto Mode> void NOP();
+    template <auto Mode> void LAX();  // LDA then TXA
+    template <auto Mode> void SAX();  // A & X
+    template <auto Mode> void DCP();  // DEC then CMP
+    template <auto Mode> void ISB();  // INC then SBC
+    template <auto Mode> void SLO();  // ASL then ORA
+    template <auto Mode> void RLA();  // ROL then AND
+    template <auto Mode> void SRE();  // LSR then EOR
+    template <auto Mode> void RRA();  // ROR then ADC
+  };
+}
