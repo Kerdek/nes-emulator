@@ -8,7 +8,6 @@ namespace PPU
 {
   template<Scanline s> void scanline_cycle();
 }
-
 namespace platform
 {
   class subsystem

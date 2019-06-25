@@ -34,7 +34,7 @@ namespace platform
     log_level      get_level();
 
   private:
-    log_level     level  = Info;
+    log_level      level  = Info;
     std::ostream * stream = &std::cout;
   };
 

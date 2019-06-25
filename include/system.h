@@ -24,9 +24,9 @@ namespace nes
     friend void PPU::wr(uint16_t addr, uint8_t v);
     template<PPU::Scanline s> friend void PPU::scanline_cycle();
 
+    nes::ppu              ppu;
     nes::cartridge        cartridge;
     nes::controller       controller;
-    nes::ppu              ppu;
     nes::apu              apu;
     nes::cpu              cpu;
     nes::debugger         debugger;

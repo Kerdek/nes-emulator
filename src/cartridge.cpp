@@ -15,12 +15,16 @@ namespace nes
     ppu{ ppu }
   { }
 
-  void cartridge::load(const std::filesystem::path & rom_file)
+  void    cartridge::load(std::filesystem::path const & rom_file)
   {
-    using namespace mirroring;
-
     std::ifstream rom(rom_file, std::ios::binary);
-    if (rom.fail()) throw std::runtime_error(std::string{ "Failed to open the ROM \"" } + std::filesystem::weakly_canonical(rom_file).c_str() + "\"");
+    if (rom.fail())
+    {
+      auto what = std::string{ "Failed to open ROM file \"" }
+                + std::filesystem::weakly_canonical(rom_file).c_str()
+                + '\"';
+      throw std::runtime_error(what);
+    }
 
     std::array<uint8_t, 16> header;
     rom.read(reinterpret_cast<char*>(header.data()), 16);
@@ -31,14 +35,13 @@ namespace nes
     info.chr_banks    = header[5];
     info.chr_ram      = (info.chr_banks == 0);
     info.prg_ram_size = header[8] ? header[8] * 0x2000 : 0x2000;
-    info.mirroring    = (header[6] & 1) ? Vertical : Horizontal;
+    info.mirroring    = (header[6] & 1) ? mirroring::Vertical : mirroring::Horizontal;
 
     LOG(platform::log::Info) << "16KB PRG-ROM banks: " << info.prg_banks;
     LOG(platform::log::Info) << "8KB CHR-ROM banks: " << info.chr_banks;
     LOG(platform::log::Info) << "Name table mirroring: " << +(header[6] & 0xB);
-    LOG(platform::log::Info) << "Mirroring: "
-                   << (info.mirroring ? "Vertical" : "Horizontal");
-    LOG(platform::log::Info) << "Mapper #: " << info.mapper_num;
+    LOG(platform::log::Info) << "Mirroring: " << (info.mirroring ? "Vertical" : "Horizontal");
+    LOG(platform::log::Info) << "Mapper #: " << std::to_string(info.mapper_num);
     LOG(platform::log::Info) << "PRG RAM size: " << info.prg_ram_size;
 
     std::vector<uint8_t> prg(info.prg_banks * ct::prg_bank_size);
@@ -46,35 +49,30 @@ namespace nes
 
     rom.read(reinterpret_cast<char*>(prg.data()), prg.size());
     rom.read(reinterpret_cast<char*>(chr.data()), chr.size());
-
     rom.close();
 
     switch (info.mapper_num)
     {
-      case 0: mapper = std::make_unique<nes::mapper0>(ppu, std::move(info), std::move(prg), std::move(chr)); break;
-      case 1: mapper = std::make_unique<nes::mapper1>(ppu, std::move(info), std::move(prg), std::move(chr)); break;
-      case 2: mapper = std::make_unique<nes::mapper2>(ppu, std::move(info), std::move(prg), std::move(chr)); break;
+      case 0: mapper = std::make_unique<nes::mapper0>(ppu, info, std::move(prg), std::move(chr)); break;
+      case 1: mapper = std::make_unique<nes::mapper1>(ppu, info, std::move(prg), std::move(chr)); break;
+      case 2: mapper = std::make_unique<nes::mapper2>(ppu, info, std::move(prg), std::move(chr)); break;
       default: throw std::runtime_error("Mapper not implemented");
     }
     mapper->reset();
   }
-
-  uint8_t cartridge::prg_read(const uint16_t addr) const
+  uint8_t cartridge::prg_read(uint16_t addr) const
   {
     return mapper->prg_read(addr);
   }
-
-  void cartridge::prg_write(const uint16_t addr, const uint8_t value)
+  void    cartridge::prg_write(uint16_t addr, uint8_t value)
   {
     mapper->prg_write(addr, value);
   }
-
-  uint8_t cartridge::chr_read(const uint16_t addr) const
+  uint8_t cartridge::chr_read(uint16_t addr) const
   {
     return mapper->chr_read(addr);
   }
-
-  void cartridge::chr_write(const uint16_t addr, const uint8_t value)
+  void    cartridge::chr_write(uint16_t addr, uint8_t value)
   {
     mapper->chr_write(addr, value);
   }

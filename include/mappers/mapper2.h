@@ -12,13 +12,12 @@ namespace nes
   public:
     mapper2(
         nes::ppu & ppu,
-        nes::cartridge_info && info,
+        nes::cartridge_info const & info,
         std::vector<uint8_t> && prg,
         std::vector<uint8_t> && chr);
 
     void reset() override;
-
-    void prg_write(const uint16_t, const uint8_t) override;
-    void chr_write(const uint16_t, const uint8_t) override;
+    void prg_write(uint16_t, uint8_t) override;
+    void chr_write(uint16_t, uint8_t) override;
   };
 }

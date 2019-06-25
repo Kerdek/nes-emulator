@@ -1,10 +1,12 @@
 #pragma once
 
-#include "types.h"
-
-#include "input.h"
 
 #include <array>
+
+namespace platform
+{
+  class input;
+}
 
 namespace nes
 {
@@ -23,7 +25,7 @@ namespace nes
   public:
     controller(platform::input & input);
 
-    uint8_t read(const size_t);
-    void write(const bool);
+    uint8_t read(size_t);
+    void write(bool);
   };
 }

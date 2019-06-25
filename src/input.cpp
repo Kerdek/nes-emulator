@@ -16,19 +16,15 @@ namespace platform
     {
         keys = SDL_GetKeyboardState(nullptr);
     }
-    uint8_t input::get_controller(size_t n) const
+    uint8_t input::get_controller(int n) const
     {
-      uint8_t state = 0;
-
-      state |= (keys[KEY_A[n]]) << 0;
-      state |= (keys[KEY_B[n]]) << 1;
-      state |= (keys[KEY_SELECT[n]]) << 2;
-      state |= (keys[KEY_START[n]]) << 3;
-      state |= (keys[KEY_UP[n]]) << 4;
-      state |= (keys[KEY_DOWN[n]]) << 5;
-      state |= (keys[KEY_LEFT[n]]) << 6;
-      state |= (keys[KEY_RIGHT[n]]) << 7;
-
-      return state;
+      return   (keys[KEY_A[n]])      << 0
+             | (keys[KEY_B[n]])      << 1
+             | (keys[KEY_SELECT[n]]) << 2
+             | (keys[KEY_START[n]])  << 3
+             | (keys[KEY_UP[n]])     << 4
+             | (keys[KEY_DOWN[n]])   << 5
+             | (keys[KEY_LEFT[n]])   << 6
+             | (keys[KEY_RIGHT[n]])  << 7;
     }
 }

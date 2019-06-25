@@ -1,11 +1,120 @@
 #pragma once
 
-#include "types.h"
-
+#include <cstdint>
 #include <array>
 
 namespace nes
 {
+  class apu;
+  class ppu;
+  class cartridge;
+  class controller;
+
+  namespace interruption_type
+  {
+    enum interruption_type { NMI, RST, IRQ, BRK };
+  }
+  namespace addressing_mode
+  {
+    enum addressing_mode
+    {
+      Implicit,
+      Accumulator,
+      Immediate,
+      ZeroPage,
+      ZeroPageX,
+      ZeroPageY,
+      Relative,
+      Absolute,
+      AbsoluteX,
+      AbsoluteX_Exception,
+      AbsoluteY,
+      AbsoluteY_Exception,
+      Indirect,
+      IndirectX,
+      IndirectY,
+      IndirectY_Exception,
+      Invalid
+    };
+  }
+  namespace flags
+  {
+    enum flags : uint8_t
+    {
+      Carry     = 0x01,
+      Zero      = 0x02,
+      Interrupt = 0x04,
+      Decimal   = 0x08,
+      Break     = 0x10,
+      Reserved  = 0x20,
+      Overflow  = 0x40,
+      Negative  = 0x80
+    };
+  }
+  namespace memory
+  {
+    enum operation
+    {
+      None = -1,
+      Read,
+      Write
+    };
+    enum cpu_map
+    {
+      Unknown = -1,
+      CPU_RAM,
+      PPU_Access,
+      APU_Access,
+      OAMDMA,
+      Controller,
+      Controller_1,
+      Controller_2,
+      Cartridge
+    };
+    enum ppu_map
+    {
+      PPUCTRL = 0x2000,
+      PPUMASK = 0x2001,
+      PPUSTATUS = 0x2002,
+      OAMADDR = 0x2003,
+      OAMDATA = 0x2004,
+      PPUSCROLL = 0x2005,
+      PPUADDR = 0x2006,
+      PPUDATA = 0x2007
+    };
+
+    template <auto Operation> int get_cpu_map(uint16_t);
+    template <auto Operation> int get_ppu_map(uint16_t);
+  }
+
+  struct state
+  {
+    uint8_t  a  = 0;
+    uint8_t  x  = 0;
+    uint8_t  y  = 0;
+    uint16_t pc = 0;
+    uint8_t  sp = 0;
+    uint8_t  sr = 0;
+
+    uint8_t ps = 0;
+
+    bool nmi_flag = false;
+    bool irq_flag = false;
+
+    int cycle_count = 0;
+
+    bool check_flags(const uint8_t) const;
+    void set_flags(const uint8_t);
+    void clear_flags(const uint8_t);
+    void update_nz(const uint8_t);
+
+    void set_a(const uint8_t);
+    void set_x(const uint8_t);
+    void set_y(const uint8_t);
+    void set_pc(const uint16_t);
+    void set_ps(const uint8_t);
+  };
+
   class cpu
   {
     nes::ppu & ppu;
@@ -23,9 +132,9 @@ namespace nes
 
     void reset();
 
-    void dma_oam(const uint8_t);
-    void set_nmi(const bool = true);
-    void set_irq(const bool = true);
+    void dma_oam(uint8_t);
+    void set_nmi(bool = true);
+    void set_irq(bool = true);
 
     void run_frame();
 
@@ -38,13 +147,13 @@ namespace nes
 
     void tick();
 
-    uint8_t read(const uint16_t) const;
-    void    write(const uint16_t, const uint8_t);
+    uint8_t read(uint16_t) const;
+    void    write(uint16_t, uint8_t);
 
-    uint8_t memory_read(const uint16_t);
-    void    memory_write(const uint16_t, const uint8_t);
+    uint8_t memory_read(uint16_t);
+    void    memory_write(uint16_t, uint8_t);
 
-    uint8_t peek(const uint16_t addr) const;
+    uint8_t peek(uint16_t addr) const;
 
     uint16_t peek_imm() const;
     uint16_t peek_rel() const;
@@ -78,21 +187,21 @@ namespace nes
 
     template <auto Mode> uint16_t get_operand();
 
-    void    add(const uint8_t);
-    uint8_t shift_left(const uint8_t);   // Arithmetic left shift
-    uint8_t shift_right(const uint8_t);  // Logical right shift
-    uint8_t rotate_left(const uint8_t);
-    uint8_t rotate_right(const uint8_t);
+    void    add(uint8_t);
+    uint8_t shift_left(uint8_t);   // Arithmetic left shift
+    uint8_t shift_right(uint8_t);  // Logical right shift
+    uint8_t rotate_left(uint8_t);
+    uint8_t rotate_right(uint8_t);
 
-    void compare(const uint8_t, const uint8_t);
+    void compare(uint8_t, uint8_t);
 
-    void branch(const bool);
+    void branch(bool);
 
-    void    push(const uint8_t);
+    void    push(uint8_t);
     uint8_t pop();
 
-    bool crosses_page(const uint16_t, const uint8_t) const;
-    bool crosses_page(const uint16_t, const int8_t) const;
+    bool crosses_page(uint16_t, uint8_t) const;
+    bool crosses_page(uint16_t, int8_t) const;
 
     //
     // Storage

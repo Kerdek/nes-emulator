@@ -21,7 +21,7 @@ namespace platform
 
       // this->bus->nestest();
       system.run_frame();
-      display.draw();
+      subsystem::display.draw();
     }
   }
 }

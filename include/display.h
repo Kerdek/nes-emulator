@@ -1,9 +1,7 @@
 #pragma once
 
-#include "types.h"
 #include "sdl.h"
-
-#include <memory>
+#include <cstdint>
 
 namespace platform
 {

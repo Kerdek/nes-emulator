@@ -7,7 +7,6 @@ namespace platform
     renderer{ window },
     texture{ renderer, width, height }
   {
-    // Bilinear filter
     // SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
     renderer.set_logical_size(width, height);
   }

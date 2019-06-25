@@ -4,9 +4,6 @@
 
 namespace sdl2
 {
-  class sdl2;
-  class window;
-  class renderer;
   class texture;
 
   class sdl2
@@ -20,7 +17,6 @@ namespace sdl2
     sdl2();
     ~sdl2();
   };
-
   class window
   {
     friend class renderer;
@@ -35,7 +31,6 @@ namespace sdl2
     window(char const * title, int width, int height);
     ~window();
   };
-
   class renderer
   {
     friend class texture;
@@ -55,7 +50,6 @@ namespace sdl2
     void present();
     void copy(texture const & texture);
   };
-
   class texture
   {
     friend class renderer;

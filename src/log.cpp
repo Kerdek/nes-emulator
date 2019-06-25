@@ -2,21 +2,21 @@
 
 namespace platform
 {
-  void log::set_stream(std::ostream& ref)
+  void log::set_stream(std::ostream & ref)
   {
-    this->stream = &ref;
+    stream = &ref;
   }
   void log::set_level(log::log_level value)
   {
-    this->level = value;
+    level = value;
   }
   std::ostream& log::get_stream()
   {
-    return *this->stream;
+    return *stream;
   }
   log::log_level log::get_level()
   {
-    return this->level;
+    return level;
   }
 
   log default_log;

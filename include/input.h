@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include <cstdint>
 
 namespace platform
 {
@@ -15,6 +15,7 @@ namespace platform
 
     public:
         input();
-        uint8_t get_controller(size_t n) const;
+
+        uint8_t get_controller(int n) const;
     };
 }

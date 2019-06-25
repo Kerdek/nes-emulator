@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include <cstdint>
 
 namespace nes
 {
@@ -14,8 +14,8 @@ namespace nes
     apu();
     void reset();
 
-    uint8_t read(const int);
-    void write(const int, uint16_t, uint8_t);
+    uint8_t read(int);
+    void write(int, uint16_t, uint8_t);
 
     void run_frame(int);
   };

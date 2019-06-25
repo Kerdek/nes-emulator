@@ -7,6 +7,12 @@
 
 namespace nes
 {
+  namespace ct
+  {
+    constexpr uint16_t prg_bank_size = 0x4000;  // 16384;
+    constexpr uint16_t chr_bank_size = 0x2000;  // 8192;
+  }
+
   class cartridge
   {
     nes::ppu & ppu;
@@ -16,18 +22,18 @@ namespace nes
 
     cartridge(cartridge const &) = delete;
     cartridge(cartridge &&) = delete;
-    cartridge & operator=(apu const &) = delete;
-    cartridge & operator=(apu &&) = delete;
+    cartridge & operator=(cartridge const &) = delete;
+    cartridge & operator=(cartridge &&) = delete;
 
   public:
     cartridge(nes::ppu & ppu);
 
-    void load(const std::filesystem::path&);
+    void load(std::filesystem::path const &);
 
-    uint8_t prg_read(const uint16_t) const;
-    uint8_t chr_read(const uint16_t) const;
+    uint8_t prg_read(uint16_t) const;
+    uint8_t chr_read(uint16_t) const;
 
-    void prg_write(const uint16_t, const uint8_t);
-    void chr_write(const uint16_t, const uint8_t);
+    void prg_write(uint16_t, uint8_t);
+    void chr_write(uint16_t, uint8_t);
   };
 }

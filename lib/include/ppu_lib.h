@@ -21,7 +21,6 @@
 
 namespace PPU
 {
-  /* Sprite buffer */
   struct Sprite
   {
     uint8_t id;     // Index in OAM.
@@ -32,8 +31,6 @@ namespace PPU
     uint8_t dataL;  // Tile data (low).
     uint8_t dataH;  // Tile data (high).
   };
-
-  /* PPUCTRL ($2000) register */
   union Ctrl
   {
     struct
@@ -48,8 +45,6 @@ namespace PPU
     };
     uint8_t r;
   };
-
-  /* PPUMASK ($2001) register */
   union Mask
   {
     struct
@@ -65,8 +60,6 @@ namespace PPU
     };
     uint8_t r;
   };
-
-  /* PPUSTATUS ($2002) register */
   union Status
   {
     struct
@@ -78,8 +71,6 @@ namespace PPU
     };
     uint8_t r;
   };
-
-  /* Loopy's VRAM address */
   union Addr
   {
     struct
@@ -109,7 +100,6 @@ namespace PPU
     0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000, 0x000000 };
    */
 
-
   inline uint32_t nes_palette[] =
   {
     0x7C7C7C, 0xFC0000, 0xBC0000, 0xBC2844, 0x840094, 0x2000A8, 0x0010A8, 0x001488, //
@@ -122,7 +112,7 @@ namespace PPU
     0x78D8F8, 0x78F8D8, 0xB8F8B8, 0xD8F8B8, 0xFCFC00, 0xF8D8F8, 0x000000, 0x000000  //
   };
 
-  nes::system * bus;
+  nes::system * system;
   platform::display * display;
   template <bool write> uint8_t access(uint16_t index, uint8_t v = 0);
 
@@ -159,15 +149,20 @@ namespace PPU
   uint16_t nt_mirror(uint16_t addr)
   {
     using namespace nes::mirroring;
-    switch (mirroring_mode) {
+    switch (mirroring_mode)
+    {
       case Vertical:    return addr % 0x800;
       case Horizontal:  return ((addr / 2) & 0x400) + (addr % 0x400);
       default:          return addr - 0x2000;
     }
   }
-  void set_mirroring(const int mode) { mirroring_mode = mode; }
+  void set_mirroring(int mode)
+  {
+    mirroring_mode = mode;
+  }
 
-  enum PPU_MEM {
+  enum PPU_MEM
+  {
     Unknown = -1,
     CHR,
     Nametables,
@@ -190,7 +185,7 @@ namespace PPU
   {
     switch (ppu_addressing(addr))
     {
-      case CHR:  return bus->cartridge.chr_read(addr);  // CHR-ROM/RAM.
+      case CHR:  return system->cartridge.chr_read(addr);  // CHR-ROM/RAM.
       case Nametables:  return ciRam[nt_mirror(addr)];          // Nametables.
       case Palettes:  // Palettes:
         if ((addr & 0x13) == 0x10) addr &= ~0x10;
@@ -202,7 +197,7 @@ namespace PPU
   {
     switch (ppu_addressing(addr))
     {
-      case CHR:  bus->cartridge.chr_write(addr, v); break;  // CHR-ROM/RAM.
+      case CHR:  system->cartridge.chr_write(addr, v); break;  // CHR-ROM/RAM.
       case Nametables:  ciRam[nt_mirror(addr)] = v; break;         // Nametables.
       case Palettes:  // Palettes:
         if ((addr & 0x13) == 0x10) addr &= ~0x10;
@@ -376,7 +371,8 @@ namespace PPU
       // Sprites:
       if (mask.spr && !(!mask.sprLeft && x < 8))
       {
-        for (int i = 7; i >= 0; i--) {
+        for (int i = 7; i >= 0; i--)
+        {
           if (oam[i].id == 64) continue;  // Void entry.
           unsigned sprX = x - oam[i].x;
           if (sprX >= 8) continue;            // Not in range.
@@ -416,17 +412,20 @@ namespace PPU
     static uint16_t addr;
 
     // Sprites:
-    switch (tick) {
+    switch (tick)
+    {
       case   1: clear_oam();    break;
       case 257: eval_sprites(); break;
       case 321: load_sprites(); break;
     }
 
     // Background:
-    if (in_range(2, 255) || in_range(322, 337)) {
+    if (in_range(2, 255) || in_range(322, 337))
+    {
       pixel();
 
-      switch (tick % 8) {
+      switch (tick % 8)
+      {
         // Nametable:
         case 1:  addr  = nt_addr(); reload_shift(); break;
         case 2:  nt    = rd(addr);  break;
@@ -441,9 +440,13 @@ namespace PPU
         case 7:  addr += 8;         break;
         case 0:  bgH   = rd(addr); h_scroll(); break;
       }
-    } else if (tick == 256) {
+    }
+    else if (tick == 256)
+    {
       pixel(); bgH = rd(addr); v_scroll(); // Vertical bump.
-    } else if (tick == 257) {
+    }
+    else if (tick == 257)
+    {
       pixel(); reload_shift(); h_update(); // Update horizontal position.
     }
 
@@ -472,7 +475,7 @@ namespace PPU
     if (tick == 1) {
       status.vBlank = true;
       if (ctrl.nmi) {
-        bus->cpu.set_nmi();
+        system->cpu.set_nmi();
      }
    }
   }
@@ -532,7 +535,8 @@ namespace PPU
   /* Execute a PPU cycle. */
   void step()
   {
-    switch (scanline) {
+    switch (scanline)
+    {
       case       240:  scanline_cycle<POST>();    break;
       case       241:  scanline_cycle<NMI>();     break;
       case       261:  scanline_cycle<PRE>();     break;
@@ -540,10 +544,12 @@ namespace PPU
     }
     // Update tick and scanline counters:
     ++tick;
-    if (tick > 340) {
+    if (tick > 340)
+    {
       tick %= 341;
       ++scanline;
-      if (scanline > 261) {
+      if (scanline > 261)
+      {
         scanline = 0;
         frameOdd ^= 1;
       }

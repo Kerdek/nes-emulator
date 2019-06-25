@@ -5,10 +5,10 @@ namespace nes
 {
   mapper0::mapper0(
       nes::ppu & ppu,
-      nes::cartridge_info && info,
+      nes::cartridge_info const & info,
       std::vector<uint8_t> && prg,
       std::vector<uint8_t> && chr) :
-    mapper{ ppu, std::move(info), std::move(prg), std::move(chr) }
+    mapper{ ppu, info, std::move(prg), std::move(chr) }
   { }
 
   void mapper0::reset()
