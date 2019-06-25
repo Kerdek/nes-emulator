@@ -20,7 +20,7 @@ Generate the solution files using CMake and build it. It has been tested on Wind
 - Compilers:
   - GCC 9.1
   - Clang 8.0
-  - MSVC 19
+  - MSVC 19.2 (VS 2019)
 
 - Libraries:
   - SDL2 2.0.9
