@@ -540,7 +540,7 @@ namespace PPU
       case       240:  scanline_cycle<POST>();    break;
       case       241:  scanline_cycle<NMI>();     break;
       case       261:  scanline_cycle<PRE>();     break;
-      default:         scanline_cycle<VISIBLE>(); break;
+      case 0 ... 239:  scanline_cycle<VISIBLE>(); break;
     }
     // Update tick and scanline counters:
     ++tick;
