@@ -15,11 +15,11 @@ namespace nes
 	}
 	uint8_t ppu::read(uint16_t addr)
 	{
-    return PPU::read_register(addr % 8);
+		return PPU::read_register(addr % 8);
 	}
 	void ppu::write(uint16_t addr, uint8_t value)
 	{
-    PPU::write_register(addr % 8, value);
+		PPU::write_register(addr % 8, value);
 	}
 	void ppu::set_mirroring(int mode)
 	{

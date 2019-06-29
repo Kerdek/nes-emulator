@@ -17,8 +17,8 @@ namespace PPU
 		PRE
 	};
 
-  uint8_t read_memory(uint16_t addr);
-  void	write_memory(uint16_t addr, uint8_t v);
+	uint8_t read_memory(uint16_t addr);
+	void	write_memory(uint16_t addr, uint8_t v);
 	template<Scanline s>
 	void scanline_cycle();
 }
@@ -27,8 +27,8 @@ namespace nes
 {
 	class system
 	{
-    friend uint8_t PPU::read_memory(uint16_t addr);
-    friend void	PPU::write_memory(uint16_t addr, uint8_t v);
+		friend uint8_t PPU::read_memory(uint16_t addr);
+		friend void	PPU::write_memory(uint16_t addr, uint8_t v);
 		template<PPU::Scanline s>
 		friend void PPU::scanline_cycle();
 

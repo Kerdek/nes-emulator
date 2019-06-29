@@ -10,58 +10,58 @@
 
 namespace nes
 {
-  namespace memory
-  {
-    template<auto Operation>
-    int get_cpu_map(const uint16_t addr)
-    {
-      auto in_range = [addr](const auto lower, const auto upper) {
-        return (addr >= lower) && (addr <= upper);
-      };
+	namespace memory
+	{
+		template<auto Operation>
+		int get_cpu_map(const uint16_t addr)
+		{
+			auto in_range = [addr](const auto lower, const auto upper) {
+				return (addr >= lower) && (addr <= upper);
+			};
 
-      if constexpr (Operation == Read)
-      {
-        if (addr <= 0x1FFF)
-          return CPU_RAM;
-        else if (in_range(0x2000, 0x3FFF))
-          return PPU_Access;
-        else if (in_range(0x4000, 0x4013) || addr == 0x4015)
-          return APU_Access;
-        else if (addr == 0x4016)
-          return Controller_1;
-        else if (addr == 0x4017)
-          return Controller_2;
-        else if (in_range(0x4018, 0x401F))
-          return Unknown;
-        else if (in_range(0x4020, 0x5FFF))
-          return Unknown;
-        else if (in_range(0x6000, 0xFFFF))
-          return Cartridge;
-      }
-      else if constexpr (Operation == Write)
-      {
-        if (addr <= 0x1FFF)
-          return CPU_RAM;
-        else if (in_range(0x2000, 0x3FFF))
-          return PPU_Access;
-        else if (in_range(0x4000, 0x4013) || addr == 0x4015)
-          return APU_Access;
-        else if (addr == 0x4014)
-          return OAMDMA;
-        else if (addr == 0x4016)
-          return Controller;
-        else if (addr == 0x4017)
-          return APU_Access;
-        else if (in_range(0x4018, 0x401F))
-          return Unknown;
-        else if (in_range(0x4020, 0xFFFF))
-          return Cartridge;
-      }
-      return Unknown;
-    }
-    template int get_cpu_map<Read>(uint16_t);
-    template int get_cpu_map<Write>(uint16_t);
-  }
+			if constexpr (Operation == Read)
+			{
+				if (addr <= 0x1FFF)
+					return CPU_RAM;
+				else if (in_range(0x2000, 0x3FFF))
+					return PPU_Access;
+				else if (in_range(0x4000, 0x4013) || addr == 0x4015)
+					return APU_Access;
+				else if (addr == 0x4016)
+					return Controller_1;
+				else if (addr == 0x4017)
+					return Controller_2;
+				else if (in_range(0x4018, 0x401F))
+					return Unknown;
+				else if (in_range(0x4020, 0x5FFF))
+					return Unknown;
+				else if (in_range(0x6000, 0xFFFF))
+					return Cartridge;
+			}
+			else if constexpr (Operation == Write)
+			{
+				if (addr <= 0x1FFF)
+					return CPU_RAM;
+				else if (in_range(0x2000, 0x3FFF))
+					return PPU_Access;
+				else if (in_range(0x4000, 0x4013) || addr == 0x4015)
+					return APU_Access;
+				else if (addr == 0x4014)
+					return OAMDMA;
+				else if (addr == 0x4016)
+					return Controller;
+				else if (addr == 0x4017)
+					return APU_Access;
+				else if (in_range(0x4018, 0x401F))
+					return Unknown;
+				else if (in_range(0x4020, 0xFFFF))
+					return Cartridge;
+			}
+			return Unknown;
+		}
+		template int get_cpu_map<Read>(uint16_t);
+		template int get_cpu_map<Write>(uint16_t);
+	}
 
 	bool state::check_flags(uint8_t flags) const
 	{
@@ -155,56 +155,38 @@ namespace nes
 
 		// ++state.cycle_count;
 	}
-  uint8_t cpu::read(uint16_t addr) const
-  {
-    using namespace memory;
-
-    switch (get_cpu_map<Read>(addr))
-    {
-    case CPU_RAM:
-      return ram[addr % 0x800];
-    case PPU_Access:
-      return ppu.read(addr);
-    case APU_Access:
-      return apu.read(elapsed());
-    case Controller_1:
-      return controller.read(0);
-    case Controller_2:
-      return controller.read(1);
-    case Cartridge:
-      return cartridge.prg_read(addr);
-    default:
-      throw std::runtime_error("Invalid read address");
-    }
-  }
-  void cpu::write(uint16_t addr, uint8_t value)
-  {
-    using namespace memory;
-
-    switch (get_cpu_map<Write>(addr))
-    {
-    case CPU_RAM:
-      ram[addr % 0x800] = value;
-      break;
-    case PPU_Access:
-      ppu.write(addr, value);
-      break;
-    case APU_Access:
-      apu.write(elapsed(), addr, value);
-      break;
-    case OAMDMA:
-      dma_oam(value);
-      break;
-    case Controller:
-      controller.write(value & 1);
-      break;
-    case Cartridge:
-      cartridge.prg_write(addr, value);
-      break;
-    default:
-      throw std::runtime_error("Invalid write address");
-    }
-  }
+	uint8_t cpu::read(const uint16_t addr) const
+	{
+		if (addr & 0x8000) return cartridge.prg_read(addr);
+		if (~addr & 0x4000) return (addr & 0x2000) ? ppu.read(addr % 0x8) : ram[addr % 0x800];
+		if (addr & 0x2000) return cartridge.prg_read(addr);
+		if (addr & 0x1FE0) throw std::runtime_error(std::string{ "Illegal read at " } + std::to_string(addr));
+		if (~addr & 0x0010) return apu.read(elapsed());
+		if (addr & 0x0008) throw std::runtime_error(std::string{ "Illegal read at " } + std::to_string(addr));
+		if (~addr & 0x0004) return apu.read(elapsed());
+		if (addr & 0x0002) return controller.read(addr & 0x0001);
+		if (addr & 0x0001) return apu.read(elapsed());
+		throw std::runtime_error(std::string{ "Illegal read at " } + std::to_string(addr));
+	}
+	void cpu::write(uint16_t addr, uint8_t value)
+	{
+		if (addr & 0x8000) return cartridge.prg_write(addr, value);
+		if (~addr & 0x4000)
+		{
+			if (addr & 0x2000)
+				ppu.write(addr, value);
+			else
+				ram[addr % 0x800] = value;
+			return;
+		}
+		if (addr & 0x3FE0) return cartridge.prg_write(addr, value);
+		if (~addr & 0x0010) return apu.write(elapsed(), addr, value);
+		if (addr & 0x0008) throw std::runtime_error(std::string{ "Illegal write at " } + std::to_string(addr));
+		if (~addr & 0x0004) return apu.write(elapsed(), addr, value);
+		if (addr & 0x0001) return apu.write(elapsed(), addr, value);
+		if (addr & 0x0002) return controller.write(value & 0x0001);
+		dma_oam(value);
+	}
 	uint8_t cpu::memory_read(uint16_t addr)
 	{
 		tick();
