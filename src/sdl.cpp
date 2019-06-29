@@ -16,12 +16,12 @@ namespace sdl2
 	window::window(char const * title, int width, int height)
 	{
 		p = SDL_CreateWindow(
-		  title,
-		  SDL_WINDOWPOS_CENTERED,
-		  SDL_WINDOWPOS_CENTERED,
-		  width,
-		  height,
-		  0);
+			title,
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			width,
+			height,
+			0);
 	}
 	window::~window()
 	{
@@ -56,11 +56,11 @@ namespace sdl2
 	texture::texture(renderer const & renderer, int width, int height)
 	{
 		p = SDL_CreateTexture(
-		  static_cast<SDL_Renderer *>(renderer.p),
-		  SDL_PIXELFORMAT_RGBA32,
-		  SDL_TEXTUREACCESS_STREAMING,
-		  width,
-		  height);
+			static_cast<SDL_Renderer *>(renderer.p),
+			SDL_PIXELFORMAT_RGBA32,
+			SDL_TEXTUREACCESS_STREAMING,
+			width,
+			height);
 	}
 	texture::~texture()
 	{

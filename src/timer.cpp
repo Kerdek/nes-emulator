@@ -3,7 +3,7 @@
 namespace nes
 {
 	timer::timer() :
-	  start{ std::chrono::high_resolution_clock::now() }
+		start{ std::chrono::high_resolution_clock::now() }
 	{}
 	float timer::elapsed_time()
 	{

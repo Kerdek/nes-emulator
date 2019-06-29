@@ -5,10 +5,10 @@
 namespace platform
 {
 	subsystem::subsystem(std::filesystem::path const & rom) :
-	  sdl2{},
-	  input{},
-	  display{},
-	  system{ rom, input, display }
+		sdl2{},
+		input{},
+		display{},
+		system{ rom, input, display }
 	{
 		for (;;)
 		{

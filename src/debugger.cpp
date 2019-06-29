@@ -1,5 +1,8 @@
 #include "debugger.h"
 
+#include "cpu.h"
+#include "memory_mapper.h"
+
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
@@ -10,6 +13,53 @@
 
 namespace nes
 {
+	uint16_t debugger::peek_imm() const
+	{
+		return cpu.pc + 1;
+	}
+	uint16_t debugger::peek_zp() const
+	{
+		return memory_mapper.read(peek_imm());
+	}
+	uint16_t debugger::peek_zpx() const
+	{
+		return (peek_zp() + cpu.x) & 0xFF;
+	}
+	uint16_t debugger::peek_zpy() const
+	{
+		return (peek_zp() + cpu.y) & 0xFF;
+	}
+	uint16_t debugger::peek_ab() const
+	{
+		auto base_addr = peek_imm();
+		return (memory_mapper.read(base_addr + 1) << 8) | memory_mapper.read(base_addr);
+	}
+	uint16_t debugger::peek_abx() const
+	{
+		auto base_addr = peek_ab();
+		return base_addr + cpu.x;
+	}
+	uint16_t debugger::peek_aby() const
+	{
+		auto base_addr = peek_ab();
+		return base_addr + cpu.y;
+	}
+	uint16_t debugger::peek_ind() const
+	{
+		auto base_addr = peek_ab();
+		return memory_mapper.read(base_addr) | (memory_mapper.read((base_addr & 0xFF00) | ((base_addr + 1) % 0x100)) << 8);
+	}
+	uint16_t debugger::peek_indx() const
+	{
+		auto base_addr = peek_zpx();
+		return (memory_mapper.read((base_addr + 1) & 0xFF) << 8) | memory_mapper.read(base_addr);
+	}
+	uint16_t debugger::peek_indy() const
+	{
+		auto base_addr = peek_zp();
+		return ((memory_mapper.read((base_addr + 1) & 0xFF) << 8) | memory_mapper.read(base_addr)) + cpu.y;
+	}
+
 	void debugger::nestest()
 	{
 		constexpr std::array<std::string_view, 0x100> instruction = {
@@ -29,7 +79,7 @@ namespace nes
 			"*NOP",
 			"ORA",
 			"ASL",
-			"*SLO",  // 0
+			"*SLO",	// 0
 			"BPL",
 			"ORA",
 			"inv",
@@ -45,7 +95,7 @@ namespace nes
 			"*NOP",
 			"ORA",
 			"ASL",
-			"*SLO",  // 1
+			"*SLO",	// 1
 			"JSR",
 			"AND",
 			"inv",
@@ -61,7 +111,7 @@ namespace nes
 			"BIT",
 			"AND",
 			"ROL",
-			"*RLA",  // 2
+			"*RLA",	// 2
 			"BMI",
 			"AND",
 			"inv",
@@ -77,7 +127,7 @@ namespace nes
 			"*NOP",
 			"AND",
 			"ROL",
-			"*RLA",  // 3
+			"*RLA",	// 3
 			"RTI",
 			"EOR",
 			"inv",
@@ -93,7 +143,7 @@ namespace nes
 			"JMP",
 			"EOR",
 			"LSR",
-			"*SRE",  // 4
+			"*SRE",	// 4
 			"BVC",
 			"EOR",
 			"inv",
@@ -109,7 +159,7 @@ namespace nes
 			"*NOP",
 			"EOR",
 			"LSR",
-			"*SRE",  // 5
+			"*SRE",	// 5
 			"RTS",
 			"ADC",
 			"inv",
@@ -125,7 +175,7 @@ namespace nes
 			"JMP",
 			"ADC",
 			"ROR",
-			"*RRA",  // 6
+			"*RRA",	// 6
 			"BVS",
 			"ADC",
 			"inv",
@@ -141,7 +191,7 @@ namespace nes
 			"*NOP",
 			"ADC",
 			"ROR",
-			"*RRA",  // 7
+			"*RRA",	// 7
 			"*NOP",
 			"STA",
 			"inv",
@@ -157,7 +207,7 @@ namespace nes
 			"STY",
 			"STA",
 			"STX",
-			"*SAX",  // 8
+			"*SAX",	// 8
 			"BCC",
 			"STA",
 			"inv",
@@ -173,7 +223,7 @@ namespace nes
 			"inv",
 			"STA",
 			"inv",
-			"inv",  // 9
+			"inv",	// 9
 			"LDY",
 			"LDA",
 			"LDX",
@@ -189,7 +239,7 @@ namespace nes
 			"LDY",
 			"LDA",
 			"LDX",
-			"*LAX",  // A
+			"*LAX",	// A
 			"BCS",
 			"LDA",
 			"inv",
@@ -205,7 +255,7 @@ namespace nes
 			"LDY",
 			"LDA",
 			"LDX",
-			"*LAX",  // B
+			"*LAX",	// B
 			"CPY",
 			"CMP",
 			"inv",
@@ -221,7 +271,7 @@ namespace nes
 			"CPY",
 			"CMP",
 			"DEC",
-			"*DCP",  // C
+			"*DCP",	// C
 			"BNE",
 			"CMP",
 			"inv",
@@ -237,7 +287,7 @@ namespace nes
 			"*NOP",
 			"CMP",
 			"DEC",
-			"*DCP",  // D
+			"*DCP",	// D
 			"CPX",
 			"SBC",
 			"inv",
@@ -253,7 +303,7 @@ namespace nes
 			"CPX",
 			"SBC",
 			"INC",
-			"*ISB",  // E
+			"*ISB",	// E
 			"BEQ",
 			"SBC",
 			"inv",
@@ -269,7 +319,7 @@ namespace nes
 			"*NOP",
 			"SBC",
 			"INC",
-			"*ISB",  // F
+			"*ISB",	// F
 		};
 
 		constexpr std::array<addr_mode2, 0x100> addressing_mode = {
@@ -289,7 +339,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // 0
+			ab,	// 0
 			rel,
 			indy,
 			inv,
@@ -305,7 +355,7 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // 1
+			abx,	// 1
 			ab,
 			indx,
 			inv,
@@ -321,7 +371,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // 2
+			ab,	// 2
 			rel,
 			indy,
 			inv,
@@ -337,7 +387,7 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // 3
+			abx,	// 3
 			impl,
 			indx,
 			inv,
@@ -353,7 +403,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // 4
+			ab,	// 4
 			rel,
 			indy,
 			inv,
@@ -369,7 +419,7 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // 5
+			abx,	// 5
 			impl,
 			indx,
 			inv,
@@ -385,7 +435,7 @@ namespace nes
 			ind,
 			ab,
 			ab,
-			ab,  // 6
+			ab,	// 6
 			rel,
 			indy,
 			inv,
@@ -401,7 +451,7 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // 7
+			abx,	// 7
 			imm,
 			indx,
 			inv,
@@ -417,7 +467,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // 8
+			ab,	// 8
 			rel,
 			indy,
 			inv,
@@ -433,7 +483,7 @@ namespace nes
 			inv,
 			abx,
 			inv,
-			inv,  // 9
+			inv,	// 9
 			imm,
 			indx,
 			imm,
@@ -449,7 +499,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // A
+			ab,	// A
 			rel,
 			indy,
 			inv,
@@ -465,7 +515,7 @@ namespace nes
 			abx,
 			abx,
 			aby,
-			aby,  // B
+			aby,	// B
 			imm,
 			indx,
 			inv,
@@ -481,7 +531,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // C
+			ab,	// C
 			rel,
 			indy,
 			inv,
@@ -497,7 +547,7 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // D
+			abx,	// D
 			imm,
 			indx,
 			inv,
@@ -513,7 +563,7 @@ namespace nes
 			ab,
 			ab,
 			ab,
-			ab,  // E
+			ab,	// E
 			rel,
 			indy,
 			inv,
@@ -529,17 +579,20 @@ namespace nes
 			abx,
 			abx,
 			abx,
-			abx,  // F
+			abx,	// F
 		};
 
-		auto			  read_word	= [this](uint16_t addr) -> uint16_t { return cpu.read(addr + 1) << 8 | cpu.read(addr); };
-		auto			  read_word_zp = [this](uint16_t addr) -> uint16_t { return cpu.read((addr + 1) & 0xFF) << 8 | cpu.read(addr); };
-		auto			  inst		   = instruction[cpu.read(cpu.state.pc)];
-		auto			  addr_m	   = addressing_mode[cpu.read(cpu.state.pc)];
+		auto read_word	= [this](uint16_t addr) -> uint16_t { return memory_mapper.read(addr + 1) << 8 | memory_mapper.read(addr); };
+		auto read_word_zp = [this](uint16_t addr) -> uint16_t { return memory_mapper.read((addr + 1) & 0xFF) << 8 | memory_mapper.read(addr); };
+		auto inst		  = instruction[memory_mapper.read(cpu.pc)];
+		auto addr_m		  = addressing_mode[memory_mapper.read(cpu.pc)];
+
 		std::stringstream ss;
-		ss << fmt::format("{:04X}  {:02X} ", cpu.state.pc, cpu.read(cpu.state.pc));
-		uint8_t  arg8   = cpu.read(cpu.state.pc + 1);
-		uint8_t  arg8_2 = cpu.read(cpu.state.pc + 2);
+
+		ss << fmt::format("{:04X}  {:02X} ", cpu.pc, memory_mapper.read(cpu.pc));
+
+		uint8_t  arg8   = memory_mapper.read(cpu.pc + 1);
+		uint8_t  arg8_2 = memory_mapper.read(cpu.pc + 2);
 		uint16_t arg16  = arg8 | (arg8_2 << 8);
 
 		switch (addr_m)
@@ -580,66 +633,66 @@ namespace nes
 			break;
 		case addr_mode2::imm:
 		{
-			ss << fmt::format("#${:02X}", cpu.peek(cpu.peek_imm()));
+			ss << fmt::format("#${:02X}", memory_mapper.read(peek_imm()));
 			break;
 		}
 		case addr_mode2::zp:
 		{
-			auto addr = cpu.peek(cpu.peek_imm());
-			ss << fmt::format("${:02X} = {:02X}", addr, cpu.peek(addr));
+			auto addr = memory_mapper.read(peek_imm());
+			ss << fmt::format("${:02X} = {:02X}", addr, memory_mapper.read(addr));
 			break;
 		}
 		case addr_mode2::zpx:
 		{
-			auto zp_addr = cpu.peek_zp();
-			auto addr	= cpu.peek_zpx();  // (zp_addr + state.x) & 0xFF
-			ss << fmt::format("${:02X},X @ {:02X} = {:02X}", zp_addr, addr, cpu.peek(addr));
+			auto zp_addr = peek_zp();
+			auto addr	= peek_zpx();	// (zp_addr + state.x) & 0xFF
+			ss << fmt::format("${:02X},X @ {:02X} = {:02X}", zp_addr, addr, memory_mapper.read(addr));
 			break;
 		}
 		case addr_mode2::zpy:
 		{
-			auto zp_addr = cpu.peek_zp();
-			auto addr	= cpu.peek_zpy();
-			ss << fmt::format("${:02X},Y @ {:02X} = {:02X}", zp_addr, addr, cpu.peek(addr));
+			auto zp_addr = peek_zp();
+			auto addr	= peek_zpy();
+			ss << fmt::format("${:02X},Y @ {:02X} = {:02X}", zp_addr, addr, memory_mapper.read(addr));
 			break;
 		}
 		case addr_mode2::rel:
 		{
-			ss << fmt::format("${:04X}", cpu.state.pc + 2 + static_cast<int8_t>(cpu.peek(cpu.peek_imm())));
+			ss << fmt::format("${:04X}", cpu.pc + 2 + static_cast<int8_t>(memory_mapper.read(peek_imm())));
 			break;
 		}
 		case addr_mode2::ab:
 		{
-			auto addr = read_word(cpu.peek_imm());
+			auto addr = read_word(peek_imm());
 			if (inst == "JMP" || inst == "JSR")
 				ss << fmt::format("${:04X}", addr);
 			else
-				ss << fmt::format("${:04X} = {:02X}", addr, cpu.peek(addr));
+				ss << fmt::format("${:04X} = {:02X}", addr, memory_mapper.read(addr));
 			break;
 		}
 		case addr_mode2::abx:
 		{
-			ss << fmt::format("${:04X},X @ {:04X} = {:02X}", arg16, uint16_t(arg16 + cpu.state.x), cpu.read(arg16 + cpu.state.x));
+			ss << fmt::format("${:04X},X @ {:04X} = {:02X}", arg16, uint16_t(arg16 + cpu.x), memory_mapper.read(arg16 + cpu.x));
 			break;
 		}
 		case addr_mode2::aby:
 		{
-			ss << fmt::format("${:04X},Y @ {:04X} = {:02X}", arg16, uint16_t(arg16 + cpu.state.y), cpu.read(arg16 + cpu.state.y));
+			ss << fmt::format("${:04X},Y @ {:04X} = {:02X}", arg16, uint16_t(arg16 + cpu.y), memory_mapper.read(arg16 + cpu.y));
 			break;
 		}
 		case addr_mode2::ind:
 		{
-			ss << fmt::format("(${:04X}) = {:04X}", cpu.peek_ab(), cpu.peek_ind());
+			ss << fmt::format("(${:04X}) = {:04X}", peek_ab(), peek_ind());
 			break;
 		}
 		case addr_mode2::indx:
 		{
-			ss << fmt::format("(${:02X},X) @ {:02X} = {:04X} = {:02X}", arg8, uint8_t(cpu.state.x + arg8), read_word_zp((cpu.state.x + arg8) % 0x100), cpu.read(read_word_zp((cpu.state.x + arg8) % 0x100)));
+			ss << fmt::format("(${:02X},X) @ {:02X} = {:04X} = {:02X}", arg8, uint8_t(cpu.x + arg8), read_word_zp((cpu.x + arg8) % 0x100), memory_mapper.read(read_word_zp((cpu.x + arg8) % 0x100)));
 			break;
 		}
 		case addr_mode2::indy:
 		{
-			ss << fmt::format("(${:02X}),Y = {:04X} @ {:04X} = {:02X}", arg8, read_word_zp(arg8), uint16_t(read_word_zp(arg8) + cpu.state.y), cpu.read(read_word_zp(arg8) + cpu.state.y));
+			ss << fmt::format("(${:02X}),Y = {:04X} @ {:04X} = {:02X}", arg8, read_word_zp(arg8), uint16_t(read_word_zp(arg8) + cpu.y), memory_mapper.read(read_word_zp(arg8) + cpu.y));
 			break;
 		}
 		default:
@@ -647,11 +700,11 @@ namespace nes
 			break;
 		}
 
-		ss << fmt::format("A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} CYC:{:3d}\n", cpu.state.a, cpu.state.x, cpu.state.y, (cpu.state.ps | 0x20), cpu.state.sp, (cpu.state.cycle_count - 7) * 3 % 341);
+		ss << fmt::format("A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} CYC:{:3d}\n", cpu.a, cpu.x, cpu.y, (cpu.p | 0x20), cpu.s, (cpu.cycle - 7) * 3 % 341);
 
 		nestest_log << ss.str();
 
-		if (cpu.state.pc == 0xC66E)
+		if (cpu.pc == 0xC66E)
 		{
 			nestest_log.close();
 			exit(0);

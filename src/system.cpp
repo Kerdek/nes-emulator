@@ -3,14 +3,17 @@
 namespace nes
 {
 	system::system(std::filesystem::path const & rom, platform::input & input, platform::display & display) :
-	  ppu{ *this, display },
-	  cartridge{ ppu },
-	  controller{ input },
-	  apu{},
-	  cpu{ ppu, apu, controller, cartridge },
-	  debugger{ cpu }
+		ram{},
+		ppu{ *this, display },
+		apu{},
+		controller{ input },
+		cartridge{ ppu },
+		memory_mapper{ ram, ppu, apu, controller, cartridge },
+		cpu{ ppu, memory_mapper },
+		debugger{ memory_mapper, cpu }
 	{
 		cartridge.load(rom);
+		ram.reset();
 		cpu.reset();
 		ppu.reset();
 		apu.reset();

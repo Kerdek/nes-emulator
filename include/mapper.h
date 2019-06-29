@@ -35,7 +35,7 @@ namespace nes
 		mapper & operator=(mapper const &) = delete;
 		mapper & operator=(mapper &&) = delete;
 
-	  protected:
+	protected:
 		nes::ppu & ppu;
 
 		nes::cartridge_info const & info;
@@ -45,12 +45,12 @@ namespace nes
 		std::array<uint32_t, 4>		prg_map{};
 		std::array<uint32_t, 8>		chr_map{};
 
-	  public:
+	public:
 		mapper(
-		  nes::ppu &				  ppu,
-		  nes::cartridge_info const & info,
-		  std::vector<uint8_t> &&	 prg,
-		  std::vector<uint8_t> &&	 chr);
+			nes::ppu &					ppu,
+			nes::cartridge_info const & info,
+			std::vector<uint8_t> &&		prg,
+			std::vector<uint8_t> &&		chr);
 
 		virtual ~mapper()	= default;
 		virtual void reset() = 0;

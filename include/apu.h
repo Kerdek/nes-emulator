@@ -11,12 +11,12 @@ namespace nes
 		apu & operator=(apu const &) = delete;
 		apu & operator=(apu &&) = delete;
 
-	  public:
+	public:
 		apu();
 		void reset();
 
-		uint8_t read(int);
-		void	write(int, uint16_t, uint8_t);
+		uint8_t read(uint16_t address);
+		void	write(uint16_t address, uint8_t value);
 
 		void run_frame(int);
 	};

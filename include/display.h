@@ -20,7 +20,7 @@ namespace platform
 		display & operator=(display const &) = delete;
 		display & operator=(display &&) = delete;
 
-	  public:
+	public:
 		display();
 
 		void update_frame(uint32_t const *);

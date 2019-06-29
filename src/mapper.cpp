@@ -6,14 +6,14 @@
 namespace nes
 {
 	mapper::mapper(
-	  nes::ppu &				  ppu,
-	  nes::cartridge_info const & info,
-	  std::vector<uint8_t> &&	 prg,
-	  std::vector<uint8_t> &&	 chr) :
-	  ppu{ ppu },
-	  info{ info },
-	  prg{ std::move(prg) },
-	  chr{ std::move(chr) }
+		nes::ppu &					ppu,
+		nes::cartridge_info const & info,
+		std::vector<uint8_t> &&		prg,
+		std::vector<uint8_t> &&		chr) :
+		ppu{ ppu },
+		info{ info },
+		prg{ std::move(prg) },
+		chr{ std::move(chr) }
 	{
 		if (mapper::info.chr_ram) mapper::chr.resize(0x2000, 0);
 		prg_ram.resize(mapper::info.prg_ram_size, 0);
@@ -46,7 +46,7 @@ namespace nes
 	void mapper::set_prg_map(int slot, int page)
 	{
 		constexpr size_t pages   = size / 8;
-		constexpr size_t pages_b = size * 0x400;  // In bytes
+		constexpr size_t pages_b = size * 0x400;	// In bytes
 		if (page < 0) page = (prg.size() / pages_b) + page;
 		for (size_t i = 0; i < pages; ++i) prg_map[pages * slot + i] = ((pages_b * page) + 0x2000 * i) % prg.size();
 	}

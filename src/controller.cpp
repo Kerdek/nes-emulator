@@ -5,12 +5,12 @@
 namespace nes
 {
 	controller::controller(platform::input & input) :
-	  input{ input }
+		input{ input }
 	{}
 
 	uint8_t controller::read(size_t port)
 	{
-		if (strobe) return 0x40 | (input.get_controller(port) & 1);  // 1 == A
+		if (strobe) return 0x40 | (input.get_controller(port) & 1);	// 1 == A
 		uint8_t status = (controller_bits[port] & 1) | 0x40;
 		controller_bits[port] >>= 1;
 		return status;

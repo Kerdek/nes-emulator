@@ -13,7 +13,7 @@ namespace platform
 		input & operator=(input const &) = delete;
 		input & operator=(input &&) = delete;
 
-	  public:
+	public:
 		input();
 
 		uint8_t get_controller(int n) const;

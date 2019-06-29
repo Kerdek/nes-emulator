@@ -6,12 +6,12 @@ namespace nes
 {
 	class timer
 	{
-	  public:
+	public:
 		timer();
 		float elapsed_time();
 		void  restart();
 
-	  private:
+	private:
 		std::chrono::high_resolution_clock::time_point start;
 	};
 }

@@ -17,13 +17,13 @@ namespace nes
 		ppu & operator=(ppu const &) = delete;
 		ppu & operator=(ppu &&) = delete;
 
-	  public:
+	public:
 		ppu(nes::system & system, platform::display & display);
 
 		void	reset();
 		uint8_t read(uint16_t);
 		void	write(uint16_t, uint8_t);
 		void	set_mirroring(int);
-		void	step();
+		void	clock();
 	};
 }

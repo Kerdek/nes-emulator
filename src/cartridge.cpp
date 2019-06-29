@@ -13,7 +13,7 @@
 namespace nes
 {
 	cartridge::cartridge(nes::ppu & ppu) :
-	  ppu{ ppu }
+		ppu{ ppu }
 	{}
 
 	void cartridge::load(std::filesystem::path const & rom_file)

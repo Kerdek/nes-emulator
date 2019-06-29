@@ -26,7 +26,7 @@ namespace platform
 		subsystem & operator=(subsystem const &) = delete;
 		subsystem & operator=(subsystem &&) = delete;
 
-	  public:
+	public:
 		subsystem(std::filesystem::path const & rom);
 	};
 }

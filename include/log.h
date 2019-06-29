@@ -5,8 +5,8 @@
 #define LOG(level)                                  \
 	if (level <= platform::default_log.get_level()) \
 	platform::default_log.get_stream()              \
-	  << '\n'                                       \
-	  << '[' << __FILE__ << ":" << std::dec << __LINE__ << "] "
+		<< '\n'                                     \
+		<< '[' << __FILE__ << ":" << std::dec << __LINE__ << "] "
 
 namespace platform
 {
@@ -17,7 +17,7 @@ namespace platform
 		log & operator=(log const &) = delete;
 		log & operator=(log &&) = delete;
 
-	  public:
+	public:
 		enum log_level
 		{
 			None,
@@ -34,7 +34,7 @@ namespace platform
 		std::ostream & get_stream();
 		log_level	  get_level();
 
-	  private:
+	private:
 		log_level	  level  = Info;
 		std::ostream * stream = &std::cout;
 	};

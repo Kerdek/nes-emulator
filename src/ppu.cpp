@@ -25,7 +25,7 @@ namespace nes
 	{
 		PPU::set_mirroring(mode);
 	}
-	void ppu::step()
+	void ppu::clock()
 	{
 		PPU::step();
 	}

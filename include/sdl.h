@@ -13,7 +13,7 @@ namespace sdl2
 		sdl2 & operator=(sdl2 const &) = delete;
 		sdl2 & operator=(sdl2 &&) = delete;
 
-	  public:
+	public:
 		sdl2();
 		~sdl2();
 	};
@@ -28,7 +28,7 @@ namespace sdl2
 		window & operator=(window const &) = delete;
 		window & operator=(window &&) = delete;
 
-	  public:
+	public:
 		window(char const * title, int width, int height);
 		~window();
 	};
@@ -43,7 +43,7 @@ namespace sdl2
 		renderer & operator=(renderer const &) = delete;
 		renderer & operator=(renderer &&) = delete;
 
-	  public:
+	public:
 		renderer(window const & window);
 		~renderer();
 
@@ -63,7 +63,7 @@ namespace sdl2
 		texture & operator=(texture const &) = delete;
 		texture & operator=(texture &&) = delete;
 
-	  public:
+	public:
 		texture(renderer const & renderer, int width, int height);
 		~texture();
 
