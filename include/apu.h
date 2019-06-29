@@ -4,19 +4,20 @@
 
 namespace nes
 {
-  class apu
-  {
-    apu(apu const &) = delete;
-    apu(apu &&) = delete;
-    apu & operator=(apu const &) = delete;
-    apu & operator=(apu &&) = delete;
-  public:
-    apu();
-    void reset();
+	class apu
+	{
+		apu(apu const &) = delete;
+		apu(apu &&)		 = delete;
+		apu & operator=(apu const &) = delete;
+		apu & operator=(apu &&) = delete;
 
-    uint8_t read(int);
-    void write(int, uint16_t, uint8_t);
+	  public:
+		apu();
+		void reset();
 
-    void run_frame(int);
-  };
+		uint8_t read(int);
+		void	write(int, uint16_t, uint8_t);
+
+		void run_frame(int);
+	};
 }

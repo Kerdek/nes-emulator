@@ -4,6 +4,7 @@
 
 #include "system.h"
 #include "display.h"
+#include "bitrange.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -18,6 +19,89 @@
 //
 
 #define NTH_BIT(x, n) (((x) >> (n)) & 1)
+
+inline bool rendering(uint8_t mask)
+{
+  return bit(3, 5).of(mask);
+}
+inline int spr_height(uint8_t control_register)
+{
+  return bit(bit(5).of(control_register) ? 4 : 3);
+}
+inline uint16_t nt_mirror(nes::mirroring::mirroring mode, uint16_t address)
+{
+  switch (mode)
+  {
+    case nes::mirroring::Vertical:    return bit(0, 11).of(address);
+    case nes::mirroring::Horizontal:  return bit(10).of(address >> 1) + bit(0, 10).of(address);
+    default:                          return address - bit(13);
+  }
+}
+enum ppu_map
+{
+  PPUCTRL = 0x2000,
+  PPUMASK = 0x2001,
+  PPUSTATUS = 0x2002,
+  OAMADDR = 0x2003,
+  OAMDATA = 0x2004,
+  PPUSCROLL = 0x2005,
+  PPUADDR = 0x2006,
+  PPUDATA = 0x2007
+};
+enum PPU_MEM
+{
+  Unknown = -1,
+  CHR,
+  Nametables,
+  Palettes
+};
+
+int ppu_addressing(uint16_t address)
+{
+  if      (range(0, bit(13)).contains(address))          return CHR;
+  else if (range(bit(13), bit(8, 14)).contains(address)) return Nametables;
+  else if (range(bit(8, 14), bit(14)).contains(address)) return Palettes;
+  else throw std::runtime_error{ "Illegal PPU address (" + std::to_string(address) + ")" };
+}
+inline uint16_t map_palette_address(uint16_t address)
+{
+  if (bit(0, 2).is_unset_in(address)) unset(bit(4)).of(address);
+  return address;
+}
+inline uint8_t read_palette(uint16_t address, uint8_t mask, std::array<uint8_t, 0x20> & cg_ram)
+{
+  return (bit(0).is_set_in(mask) ? bit(4, 6) : bit(0, 8)).of(cg_ram[bit(0, 5).of(map_palette_address(address))]);
+}
+inline void write_palette(uint16_t address, uint8_t value, std::array<uint8_t, 0x20> & cg_ram)
+{
+  cg_ram[bit(0, 5).of(map_palette_address(address))] = value;
+}
+
+inline uint16_t nt_addr(uint16_t address)
+{
+  return bit(0, 12).of(address) | bit(13);
+}
+
+inline uint16_t at_addr(uint16_t address)
+{
+  return bit(0, 3).of(address >> 2) | bit(3, 6).of(address >> 4) | bit(6, 10) | bit(10, 12).of(address) | bit(13);
+}
+
+inline uint16_t bg_addr(uint16_t address, uint8_t nt_latch, uint8_t control_register)
+{
+  return
+        (0x1000 & (control_register << 8))
+      | (0x0FF0 & (nt_latch << 4        ))
+      | (0x0007 & (address >> 12        ));
+}
+
+inline uint16_t h_scroll(uint16_t address, uint8_t mask)
+{
+  if (!rendering(mask)) return address;
+  if (!bit(0, 5).of(~address)) address ^= (bit(0, 5) | bit(10));
+  else address = (address & ~bit(0, 5)) | (bit(0, 5).of(address + 1));
+  return address;
+}
 
 namespace PPU
 {
@@ -89,17 +173,6 @@ namespace PPU
     unsigned r : 15;
   };
 
-  /* inline uint32_t nes_palette[] =
-  { 0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000, 0x881400,
-    0x503000, 0x007800, 0x006800, 0x005800, 0x004058, 0x000000, 0x000000, 0x000000,
-    0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC, 0xD800CC, 0xE40058, 0xF83800, 0xE45C10,
-    0xAC7C00, 0x00B800, 0x00A800, 0x00A844, 0x008888, 0x000000, 0x000000, 0x000000,
-    0xF8F8F8, 0x3CBCFC, 0x6888FC, 0x9878F8, 0xF878F8, 0xF85898, 0xF87858, 0xFCA044,
-    0xF8B800, 0xB8F818, 0x58D854, 0x58F898, 0x00E8D8, 0x787878, 0x000000, 0x000000,
-    0xFCFCFC, 0xA4E4FC, 0xB8B8F8, 0xD8B8F8, 0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
-    0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000, 0x000000 };
-   */
-
   inline uint32_t nes_palette[] =
   {
     0x7C7C7C, 0xFC0000, 0xBC0000, 0xBC2844, 0x840094, 0x2000A8, 0x0010A8, 0x001488, //
@@ -142,133 +215,117 @@ namespace PPU
   int scanline, tick;
   bool frameOdd;
 
-  inline bool rendering() { return mask.bg || mask.spr; }
-  inline int spr_height() { return ctrl.sprSz ? 16 : 8; }
-
-  /* Get CIRAM address according to mirroring */
-  uint16_t nt_mirror(uint16_t addr)
-  {
-    using namespace nes::mirroring;
-    switch (mirroring_mode)
-    {
-      case Vertical:    return addr % 0x800;
-      case Horizontal:  return ((addr / 2) & 0x400) + (addr % 0x400);
-      default:          return addr - 0x2000;
-    }
-  }
   void set_mirroring(int mode)
   {
     mirroring_mode = mode;
   }
 
-  enum PPU_MEM
+  uint8_t read_memory(uint16_t address)
   {
-    Unknown = -1,
-    CHR,
-    Nametables,
-    Palettes
-  };
-
-  int ppu_addressing(const uint16_t addr) {
-    auto in_range = [addr](const auto lower, const auto upper) {
-      return (addr >= lower) && (addr <= upper);
-    };
-
-    if      (in_range(0x0000, 0x1FFF)) { return CHR; }
-    else if (in_range(0x2000, 0x3EFF)) { return Nametables; }
-    else if (in_range(0x3F00, 0x3FFF)) { return Palettes; }
-    else                               { return Unknown; }
-  }
-
-  /* Access PPU memory */
-  uint8_t rd(uint16_t addr)
-  {
-    switch (ppu_addressing(addr))
+    switch (ppu_addressing(address))
     {
-      case CHR:  return system->cartridge.chr_read(addr);  // CHR-ROM/RAM.
-      case Nametables:  return ciRam[nt_mirror(addr)];          // Nametables.
-      case Palettes:  // Palettes:
-        if ((addr & 0x13) == 0x10) addr &= ~0x10;
-        return cgRam[addr & 0x1F] & (mask.gray ? 0x30 : 0xFF);
-      default: return 0;
+    case CHR:
+      return system->cartridge.chr_read(address);
+    case Nametables:
+      return ciRam[nt_mirror((nes::mirroring::mirroring)mirroring_mode, address)];
+    case Palettes:
+      return read_palette(address, mask.r, cgRam);
+    default:
+      throw std::runtime_error{ "Illegal ppu read (" + std::to_string(address) + ")" };
     }
   }
-  void wr(uint16_t addr, uint8_t v)
+  void write_memory(uint16_t address, uint8_t value)
   {
-    switch (ppu_addressing(addr))
+    switch (ppu_addressing(address))
     {
-      case CHR:  system->cartridge.chr_write(addr, v); break;  // CHR-ROM/RAM.
-      case Nametables:  ciRam[nt_mirror(addr)] = v; break;         // Nametables.
-      case Palettes:  // Palettes:
-        if ((addr & 0x13) == 0x10) addr &= ~0x10;
-        cgRam[addr & 0x1F] = v; break;
+    case CHR:
+      system->cartridge.chr_write(address, value);
+      break;
+    case Nametables:
+      ciRam[nt_mirror((nes::mirroring::mirroring)mirroring_mode, address)] = value;
+      break;
+    case Palettes:
+      write_palette(address, value, cgRam);
+      break;
     }
   }
 
-  /* Access PPU through registers. */
-  template <bool write> uint8_t access(uint16_t index, uint8_t v)
+  bool register_latch;
+
+  // Writing any value to any PPU port, even to the nominally read-only PPUSTATUS, will fill this latch.
+  // Reading any readable port (PPUSTATUS, OAMDATA, or PPUDATA) also fills the latch with the bits read
+  uint8_t register_result;
+
+  void write_register(uint16_t index, uint8_t value)
   {
-    using namespace nes::memory;
+    index = bit(0, 3).of(index) | bit(13);
 
-    index = (index % 8) + 0x2000;
+    register_result = value;
 
-    static uint8_t res;      // Result of the operation.
-    [[maybe_unused]] static uint8_t buffer;   // VRAM read buffer.
-    static bool latch;  // Detect second reading.
-
-    /* Write into register */
-    if constexpr (write)
+    switch (index)
     {
-      res = v;
-
-      switch (index)
-      {
-        case PPUCTRL:  ctrl.r = v; tAddr.nt = ctrl.nt; break;
-        case PPUMASK:  mask.r = v; break;
-        case OAMADDR:  oamAddr = v; break;
-        case OAMDATA:  oamMem[oamAddr++] = v; break;
-        case PPUSCROLL:
-          if (!latch) { fX = v & 7; tAddr.cX = v >> 3; }      // First write.
-          else  { tAddr.fY = v & 7; tAddr.cY = v >> 3; }      // Second write.
-          latch = !latch; break;
-        case PPUADDR:
-          if (!latch) { tAddr.h = v & 0x3F; }                 // First write.
-          else        { tAddr.l = v; vAddr.r = tAddr.r; }     // Second write.
-          latch = !latch; break;
-        case PPUDATA:  wr(vAddr.addr, v); vAddr.addr += ctrl.incr ? 32 : 1;
-      }
+    case PPUCTRL:
+      ctrl.r = value;
+      tAddr.nt = ctrl.nt;
+      break;
+    case PPUMASK:
+      mask.r = value;
+      break;
+    case OAMADDR:
+      oamAddr = value;
+      break;
+    case OAMDATA:
+      oamMem[oamAddr++] = value;
+      break;
+    case PPUSCROLL:
+      if ((register_latch = !register_latch)) { fX = value & 7; tAddr.cX = value >> 3; }
+      else  { tAddr.fY = value & 7; tAddr.cY = value >> 3; }
+      break;
+    case PPUADDR:
+      if ((register_latch = !register_latch)) { tAddr.h = value & 0x3F; }
+      else        { tAddr.l = value; vAddr.r = tAddr.r; }
+      break;
+    case PPUDATA:
+      write_memory(vAddr.addr, value);
+      vAddr.addr += ctrl.incr ? 32 : 1;
     }
-    /* Read from register */
-    else
-    {
-      switch (index)
-      {
-        case PPUSTATUS:  res = (res & 0x1F) | status.r; status.vBlank = 0; latch = 0; break;
-        case OAMDATA:  res = oamMem[oamAddr]; break;
-        case PPUDATA:
-          if (vAddr.addr <= 0x3EFF) {
-            res    = buffer;
-            buffer = rd(vAddr.addr);
-          } else {
-            res = buffer = rd(vAddr.addr);
-          }
-          vAddr.addr += ctrl.incr ? 32 : 1;
-      }
-    }
-    return res;
   }
-  template uint8_t access<0>(uint16_t, uint8_t);
-  template uint8_t access<1>(uint16_t, uint8_t);
+  uint8_t read_register(uint16_t index)
+  {
+    index = bit(0, 3).of(index) | bit(13);
 
-  /* Calculate graphics addresses */
-  inline uint16_t nt_addr() { return 0x2000 | (vAddr.r & 0xFFF); }
-  inline uint16_t at_addr() { return 0x23C0 | (vAddr.nt << 10) | ((vAddr.cY / 4) << 3) | (vAddr.cX / 4); }
-  inline uint16_t bg_addr() { return (ctrl.bgTbl * 0x1000) + (nt * 16) + vAddr.fY; }
+    switch (index)
+    {
+    case PPUSTATUS:
+      register_result = (register_result & 0x1F) | status.r;
+      status.vBlank = 0;
+      register_latch = 0;
+      break;
+    case OAMDATA:
+      register_result = oamMem[oamAddr];
+      break;
+    case PPUDATA:
+    {
+      static uint8_t buffer;
+        if (vAddr.addr <= 0x3EFF)
+        {
+          register_result = buffer;
+          buffer = read_memory(vAddr.addr);
+        }
+        else
+        {
+          register_result = buffer = read_memory(vAddr.addr);
+        }
+        vAddr.addr += ctrl.incr ? 32 : 1;
+    }
+    }
+    return register_result;
+  }
+
   /* Increment the scroll by one pixel */
-  inline void h_scroll() { if (!rendering()) return; if (vAddr.cX == 31) vAddr.r ^= 0x41F; else vAddr.cX++; }
   inline void v_scroll()
   {
-    if (!rendering()) return;
+    if (!rendering(mask.r)) return;
     if (vAddr.fY < 7) vAddr.fY++;
     else {
       vAddr.fY = 0;
@@ -278,8 +335,8 @@ namespace PPU
     }
   }
   /* Copy scrolling data from loopy T to loopy V */
-  inline void h_update() { if (!rendering()) return; vAddr.r = (vAddr.r & ~0x041F) | (tAddr.r & 0x041F); }
-  inline void v_update() { if (!rendering()) return; vAddr.r = (vAddr.r & ~0x7BE0) | (tAddr.r & 0x7BE0); }
+  inline void h_update() { if (!rendering(mask.r)) return; vAddr.r = (vAddr.r & ~0x041F) | (tAddr.r & 0x041F); }
+  inline void v_update() { if (!rendering(mask.r)) return; vAddr.r = (vAddr.r & ~0x7BE0) | (tAddr.r & 0x7BE0); }
   /* Put new data into the shift registers */
   inline void reload_shift()
   {
@@ -312,7 +369,7 @@ namespace PPU
     {
       int line = (scanline == 261 ? -1 : scanline) - oamMem[(i * 4) + 0];
       // If the sprite is in the scanline, copy its properties into secondary OAM:
-      if (line >= 0 && line < spr_height())
+      if (line >= 0 && line < spr_height(ctrl.r))
       {
         secOam[n].id   = i;
         secOam[n].y    = oamMem[(i * 4) + 0];
@@ -336,17 +393,17 @@ namespace PPU
       oam[i] = secOam[i];  // Copy secondary OAM into primary.
 
       // Different address modes depending on the sprite height:
-      if (spr_height() == 16)
+      if (spr_height(ctrl.r) == 16)
         addr = ((oam[i].tile & 1) * 0x1000) + ((oam[i].tile & ~1) * 16);
       else
         addr = ( ctrl.sprTbl      * 0x1000) + ( oam[i].tile       * 16);
 
-      unsigned sprY = (scanline - oam[i].y) % spr_height();  // Line inside the sprite.
-      if (oam[i].attr & 0x80) sprY ^= spr_height() - 1;      // Vertical flip.
+      unsigned sprY = (scanline - oam[i].y) % spr_height(ctrl.r);  // Line inside the sprite.
+      if (oam[i].attr & 0x80) sprY ^= spr_height(ctrl.r) - 1;      // Vertical flip.
       addr += sprY + (sprY & 8);  // Select the second tile if on 8x16.
 
-      oam[i].dataL = rd(addr + 0);
-      oam[i].dataH = rd(addr + 8);
+      oam[i].dataL = read_memory(addr + 0);
+      oam[i].dataH = read_memory(addr + 8);
     }
   }
 
@@ -392,7 +449,7 @@ namespace PPU
       // Evaluate priority:
       if (objPalette && (palette == 0 || objPriority == 0)) palette = objPalette;
 
-      pixels[scanline*256 + x] = nes_palette[rd(0x3F00 + (rendering() ? palette : 0))];
+      pixels[scanline*256 + x] = nes_palette[read_memory(0x3F00 + (rendering(mask.r) ? palette : 0))];
     }
     // Perform background shifts:
     bgShiftL <<= 1;
@@ -427,23 +484,23 @@ namespace PPU
       switch (tick % 8)
       {
         // Nametable:
-        case 1:  addr  = nt_addr(); reload_shift(); break;
-        case 2:  nt    = rd(addr);  break;
+        case 1:  addr  = nt_addr(vAddr.r); reload_shift(); break;
+        case 2:  nt    = read_memory(addr);  break;
         // Attribute:
-        case 3:  addr  = at_addr(); break;
-        case 4:  at    = rd(addr);  if (vAddr.cY & 2) { at >>= 4; }
+        case 3:  addr  = at_addr(vAddr.r); break;
+        case 4:  at    = read_memory(addr);  if (vAddr.cY & 2) { at >>= 4; }
                                     if (vAddr.cX & 2) { at >>= 2; } break;
         // Background (low bits):
-        case 5:  addr  = bg_addr(); break;
-        case 6:  bgL   = rd(addr);  break;
+        case 5:  addr  = bg_addr(vAddr.r, nt, ctrl.r); break;
+        case 6:  bgL   = read_memory(addr);  break;
         // Background (high bits):
         case 7:  addr += 8;         break;
-        case 0:  bgH   = rd(addr); h_scroll(); break;
+        case 0:  bgH   = read_memory(addr); vAddr.r = h_scroll(vAddr.r, mask.r); break;
       }
     }
     else if (tick == 256)
     {
-      pixel(); bgH = rd(addr); v_scroll(); // Vertical bump.
+      pixel(); bgH = read_memory(addr); v_scroll(); // Vertical bump.
     }
     else if (tick == 257)
     {
@@ -451,12 +508,12 @@ namespace PPU
     }
 
     // No shift reloading:
-    else if (tick == 1)                  { addr = nt_addr(); }
-    else if (tick == 321 || tick == 339) { addr = nt_addr(); }
+    else if (tick == 1)                  { addr = nt_addr(vAddr.r); }
+    else if (tick == 321 || tick == 339) { addr = nt_addr(vAddr.r); }
 
     // Nametable fetch instead of attribute:
-    else if (tick == 338) { nt = rd(addr); }
-    else if (tick == 340) { nt = rd(addr); }
+    else if (tick == 338) { nt = read_memory(addr); }
+    else if (tick == 340) { nt = read_memory(addr); }
 
     // Signal scanline to mapper:
     // if (tick == 260 && rendering()) bus->scanline();
@@ -501,31 +558,31 @@ namespace PPU
 
         switch (tick % 8) {
           // Nametable:
-          case 1:  addr  = nt_addr(); reload_shift(); break;
-          case 2:  nt    = rd(addr);  break;
+          case 1:  addr  = nt_addr(vAddr.r); reload_shift(); break;
+          case 2:  nt    = read_memory(addr);  break;
           // Attribute:
-          case 3:  addr  = at_addr(); break;
-          case 4:  at    = rd(addr);  if (vAddr.cY & 2) { at >>= 4; }
+          case 3:  addr  = at_addr(vAddr.r); break;
+          case 4:  at    = read_memory(addr);  if (vAddr.cY & 2) { at >>= 4; }
                                       if (vAddr.cX & 2) { at >>= 2; } break;
           // Background (low bits):
-          case 5:  addr  = bg_addr(); break;
-          case 6:  bgL   = rd(addr);  break;
+          case 5:  addr  = bg_addr(vAddr.r, nt, ctrl.r); break;
+          case 6:  bgL   = read_memory(addr);  break;
           // Background (high bits):
           case 7:  addr += 8;         break;
-          case 0:  bgH   = rd(addr); h_scroll(); break;
+          case 0:  bgH   = read_memory(addr); vAddr.r = h_scroll(vAddr.r, mask.r); break;
         }
     }
-    else if (tick == 256)        { pixel(); bgH = rd(addr); v_scroll(); }  // Vertical bump.
+    else if (tick == 256)        { pixel(); bgH = read_memory(addr); v_scroll(); }  // Vertical bump.
     else if (tick == 257)        { pixel(); reload_shift(); h_update(); }  // Update horizontal position.
     else if (in_range(280, 304)) { v_update(); } // Update vertical position.
 
     // No shift reloading:
-    else if (tick == 1)                  { addr = nt_addr(); status.vBlank = false; }
-    else if (tick == 321 || tick == 339) { addr = nt_addr(); }
+    else if (tick == 1)                  { addr = nt_addr(vAddr.r); status.vBlank = false; }
+    else if (tick == 321 || tick == 339) { addr = nt_addr(vAddr.r); }
 
     // Nametable fetch instead of attribute:
-    else if (tick == 338) { nt = rd(addr); }
-    else if (tick == 340) { nt = rd(addr); if (rendering() && frameOdd) { ++tick; } }
+    else if (tick == 338) { nt = read_memory(addr); }
+    else if (tick == 340) { nt = read_memory(addr); if (rendering(mask.r) && frameOdd) { ++tick; } }
 
     // Signal scanline to mapper:
     // if (tick == 260 && rendering()) bus->scanline();

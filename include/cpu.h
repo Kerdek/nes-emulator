@@ -1,319 +1,358 @@
 #pragma once
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 namespace nes
 {
-  class apu;
-  class ppu;
-  class cartridge;
-  class controller;
+	class apu;
+	class ppu;
+	class cartridge;
+	class controller;
 
-  namespace interruption_type
-  {
-    enum interruption_type { NMI, RST, IRQ, BRK };
-  }
-  namespace addressing_mode
-  {
-    enum addressing_mode
-    {
-      Implicit,
-      Accumulator,
-      Immediate,
-      ZeroPage,
-      ZeroPageX,
-      ZeroPageY,
-      Relative,
-      Absolute,
-      AbsoluteX,
-      AbsoluteX_Exception,
-      AbsoluteY,
-      AbsoluteY_Exception,
-      Indirect,
-      IndirectX,
-      IndirectY,
-      IndirectY_Exception,
-      Invalid
-    };
-  }
-  namespace flags
-  {
-    enum flags : uint8_t
-    {
-      Carry     = 0x01,
-      Zero      = 0x02,
-      Interrupt = 0x04,
-      Decimal   = 0x08,
-      Break     = 0x10,
-      Reserved  = 0x20,
-      Overflow  = 0x40,
-      Negative  = 0x80
-    };
-  }
-  namespace memory
-  {
-    enum operation
-    {
-      None = -1,
-      Read,
-      Write
-    };
-    enum cpu_map
-    {
-      Unknown = -1,
-      CPU_RAM,
-      PPU_Access,
-      APU_Access,
-      OAMDMA,
-      Controller,
-      Controller_1,
-      Controller_2,
-      Cartridge
-    };
-    enum ppu_map
-    {
-      PPUCTRL = 0x2000,
-      PPUMASK = 0x2001,
-      PPUSTATUS = 0x2002,
-      OAMADDR = 0x2003,
-      OAMDATA = 0x2004,
-      PPUSCROLL = 0x2005,
-      PPUADDR = 0x2006,
-      PPUDATA = 0x2007
-    };
+	namespace interruption_type
+	{
+		enum interruption_type
+		{
+			NMI,
+			RST,
+			IRQ,
+			BRK
+		};
+	}
+	namespace addressing_mode
+	{
+		enum addressing_mode
+		{
+			Implicit,
+			Accumulator,
+			Immediate,
+			ZeroPage,
+			ZeroPageX,
+			ZeroPageY,
+			Relative,
+			Absolute,
+			AbsoluteX,
+			AbsoluteX_Exception,
+			AbsoluteY,
+			AbsoluteY_Exception,
+			Indirect,
+			IndirectX,
+			IndirectY,
+			IndirectY_Exception,
+			Invalid
+		};
+	}
+	namespace flags
+	{
+		enum flags : uint8_t
+		{
+			Carry	 = 0x01,
+			Zero	  = 0x02,
+			Interrupt = 0x04,
+			Decimal   = 0x08,
+			Break	 = 0x10,
+			Reserved  = 0x20,
+			Overflow  = 0x40,
+			Negative  = 0x80
+		};
+	}
+	namespace memory
+	{
+		enum operation
+		{
+			None = -1,
+			Read,
+			Write
+		};
+		enum cpu_map
+		{
+			Unknown = -1,
+			CPU_RAM,
+			PPU_Access,
+			APU_Access,
+			OAMDMA,
+			Controller,
+			Controller_1,
+			Controller_2,
+			Cartridge
+		};
+		enum ppu_map
+		{
+			PPUCTRL   = 0x2000,
+			PPUMASK   = 0x2001,
+			PPUSTATUS = 0x2002,
+			OAMADDR   = 0x2003,
+			OAMDATA   = 0x2004,
+			PPUSCROLL = 0x2005,
+			PPUADDR   = 0x2006,
+			PPUDATA   = 0x2007
+		};
 
-    template <auto Operation> int get_cpu_map(uint16_t);
-    template <auto Operation> int get_ppu_map(uint16_t);
-  }
+		template<auto Operation>
+		int get_cpu_map(uint16_t);
+		template<auto Operation>
+		int get_ppu_map(uint16_t);
+	}
 
-  struct state
-  {
-    uint8_t  a  = 0;
-    uint8_t  x  = 0;
-    uint8_t  y  = 0;
-    uint16_t pc = 0;
-    uint8_t  sp = 0;
-    uint8_t  sr = 0;
+	struct state
+	{
+		uint8_t  a  = 0;
+		uint8_t  x  = 0;
+		uint8_t  y  = 0;
+		uint16_t pc = 0;
+		uint8_t  sp = 0;
+		uint8_t  sr = 0;
 
-    uint8_t ps = 0;
+		uint8_t ps = 0;
 
-    bool nmi_flag = false;
-    bool irq_flag = false;
+		bool nmi_flag = false;
+		bool irq_flag = false;
 
-    int cycle_count = 0;
+		int cycle_count = 0;
 
-    bool check_flags(const uint8_t) const;
-    void set_flags(const uint8_t);
-    void clear_flags(const uint8_t);
-    void update_nz(const uint8_t);
+		bool check_flags(const uint8_t) const;
+		void set_flags(const uint8_t);
+		void clear_flags(const uint8_t);
+		void update_nz(const uint8_t);
 
-    void set_a(const uint8_t);
-    void set_x(const uint8_t);
-    void set_y(const uint8_t);
-    void set_pc(const uint16_t);
-    void set_ps(const uint8_t);
-  };
+		void set_a(const uint8_t);
+		void set_x(const uint8_t);
+		void set_y(const uint8_t);
+		void set_pc(const uint16_t);
+		void set_ps(const uint8_t);
+	};
 
-  class cpu
-  {
-    nes::ppu & ppu;
-    nes::apu & apu;
-    nes::controller & controller;
-    nes::cartridge & cartridge;
+	class cpu
+	{
+		nes::ppu &		  ppu;
+		nes::apu &		  apu;
+		nes::controller & controller;
+		nes::cartridge &  cartridge;
 
-    cpu(cpu const &) = delete;
-    cpu(cpu &&) = delete;
-    cpu & operator=(cpu const &) = delete;
-    cpu & operator=(cpu &&) = delete;
+		cpu(cpu const &) = delete;
+		cpu(cpu &&)		 = delete;
+		cpu & operator=(cpu const &) = delete;
+		cpu & operator=(cpu &&) = delete;
 
-  public:
-    cpu(nes::ppu & ppu, nes::apu & apu, nes::controller & controller, nes::cartridge & cartridge);
+	  public:
+		cpu(nes::ppu & ppu, nes::apu & apu, nes::controller & controller, nes::cartridge & cartridge);
 
-    void reset();
+		void reset();
 
-    void dma_oam(uint8_t);
-    void set_nmi(bool = true);
-    void set_irq(bool = true);
+		void dma_oam(uint8_t);
+		void set_nmi(bool = true);
+		void set_irq(bool = true);
 
-    void run_frame();
+		void run_frame();
 
-    friend class debugger;
+		friend class debugger;
 
-  private:
+	  private:
+		nes::state				   state;
+		std::array<uint8_t, 0x800> ram = {};
 
-    nes::state                 state;
-    std::array<uint8_t, 0x800> ram = {};
+		void tick();
 
-    void tick();
+		uint8_t read(uint16_t) const;
+		void	write(uint16_t, uint8_t);
 
-    uint8_t read(uint16_t) const;
-    void    write(uint16_t, uint8_t);
+		uint8_t memory_read(uint16_t);
+		void	memory_write(uint16_t, uint8_t);
 
-    uint8_t memory_read(uint16_t);
-    void    memory_write(uint16_t, uint8_t);
+		uint8_t peek(uint16_t addr) const;
 
-    uint8_t peek(uint16_t addr) const;
+		uint16_t peek_imm() const;
+		uint16_t peek_rel() const;
+		uint16_t peek_zp() const;
+		uint16_t peek_zpx() const;
+		uint16_t peek_zpy() const;
+		uint16_t peek_ab() const;
+		uint16_t peek_abx() const;
+		uint16_t peek_aby() const;
+		uint16_t peek_ind() const;
+		uint16_t peek_indx() const;
+		uint16_t peek_indy() const;
 
-    uint16_t peek_imm() const;
-    uint16_t peek_rel() const;
-    uint16_t peek_zp() const;
-    uint16_t peek_zpx() const;
-    uint16_t peek_zpy() const;
-    uint16_t peek_ab() const;
-    uint16_t peek_abx() const;
-    uint16_t peek_aby() const;
-    uint16_t peek_ind() const;
-    uint16_t peek_indx() const;
-    uint16_t peek_indy() const;
+		int elapsed() const;
 
-    int elapsed() const;
+		const int total_cycles	 = 29781;
+		int		  remaining_cycles = 0;
 
-    const int total_cycles     = 29781;
-    int       remaining_cycles = 0;
+		//
+		// All functions defined here are
+		// implemented in cpu_instructions.cpp
+		//
 
-    //
-    // All functions defined here are
-    // implemented in cpu_instructions.cpp
-    //
+		void execute();
 
-    void execute();
+		/* Instructions */
 
-    /* Instructions */
+		//
+		// Auxiliary
+		//
 
-    //
-    // Auxiliary
-    //
+		template<auto Mode>
+		uint16_t get_operand();
 
-    template <auto Mode> uint16_t get_operand();
+		void	add(uint8_t);
+		uint8_t shift_left(uint8_t);   // Arithmetic left shift
+		uint8_t shift_right(uint8_t);  // Logical right shift
+		uint8_t rotate_left(uint8_t);
+		uint8_t rotate_right(uint8_t);
 
-    void    add(uint8_t);
-    uint8_t shift_left(uint8_t);   // Arithmetic left shift
-    uint8_t shift_right(uint8_t);  // Logical right shift
-    uint8_t rotate_left(uint8_t);
-    uint8_t rotate_right(uint8_t);
+		void compare(uint8_t, uint8_t);
 
-    void compare(uint8_t, uint8_t);
+		void branch(bool);
 
-    void branch(bool);
+		void	push(uint8_t);
+		uint8_t pop();
 
-    void    push(uint8_t);
-    uint8_t pop();
+		bool crosses_page(uint16_t, uint8_t) const;
+		bool crosses_page(uint16_t, int8_t) const;
 
-    bool crosses_page(uint16_t, uint8_t) const;
-    bool crosses_page(uint16_t, int8_t) const;
+		//
+		// Storage
+		//
 
-    //
-    // Storage
-    //
+		template<auto Mode>
+		void LDA();
+		template<auto Mode>
+		void LDX();
+		template<auto Mode>
+		void LDY();
 
-    template <auto Mode> void LDA();
-    template <auto Mode> void LDX();
-    template <auto Mode> void LDY();
+		template<auto Mode>
+		void STA();
+		template<auto Mode>
+		void STX();
+		template<auto Mode>
+		void STY();
 
-    template <auto Mode> void STA();
-    template <auto Mode> void STX();
-    template <auto Mode> void STY();
+		void TAX();
+		void TAY();
+		void TSX();
+		void TXA();
+		void TXS();
+		void TYA();
 
-    void TAX();
-    void TAY();
-    void TSX();
-    void TXA();
-    void TXS();
-    void TYA();
+		//
+		// Math
+		//
 
-    //
-    // Math
-    //
+		template<auto Mode>
+		void ADC();
+		template<auto Mode>
+		void SBC();
+		template<auto Mode>
+		void INC();
+		template<auto Mode>
+		void DEC();
+		void INX();
+		void INY();
+		void DEX();
+		void DEY();
 
-    template <auto Mode> void ADC();
-    template <auto Mode> void SBC();
-    template <auto Mode> void INC();
-    template <auto Mode> void DEC();
-    void                      INX();
-    void                      INY();
-    void                      DEX();
-    void                      DEY();
+		//
+		// Bitwise
+		//
 
-    //
-    // Bitwise
-    //
+		template<auto Mode>
+		void AND();
+		template<auto Mode>
+		void ORA();
+		template<auto Mode>
+		void EOR();
+		template<auto Mode>
+		void LSR();
+		template<auto Mode>
+		void ASL();
+		template<auto Mode>
+		void ROL();
+		template<auto Mode>
+		void ROR();
 
-    template <auto Mode> void AND();
-    template <auto Mode> void ORA();
-    template <auto Mode> void EOR();
-    template <auto Mode> void LSR();
-    template <auto Mode> void ASL();
-    template <auto Mode> void ROL();
-    template <auto Mode> void ROR();
+		//
+		// Flags
+		//
 
-    //
-    // Flags
-    //
+		void CLC();
+		void CLD();
+		void CLI();
+		void CLV();
+		void SEC();
+		void SED();
+		void SEI();
 
-    void CLC();
-    void CLD();
-    void CLI();
-    void CLV();
-    void SEC();
-    void SED();
-    void SEI();
+		template<auto Mode>
+		void CMP();
+		template<auto Mode>
+		void CPX();
+		template<auto Mode>
+		void CPY();
+		template<auto Mode>
+		void BIT();
 
-    template <auto Mode> void CMP();
-    template <auto Mode> void CPX();
-    template <auto Mode> void CPY();
-    template <auto Mode> void BIT();
+		//
+		// Jumps and branches
+		//
 
-    //
-    // Jumps and branches
-    //
+		template<auto Mode>
+		void JMP();
+		void JSR();
+		void RTS();
+		void RTI();
 
-    template <auto Mode> void JMP();
-    void                      JSR();
-    void                      RTS();
-    void                      RTI();
+		void BCC();
+		void BCS();
+		void BEQ();
+		void BMI();
+		void BNE();
+		void BPL();
+		void BVC();
+		void BVS();
 
-    void BCC();
-    void BCS();
-    void BEQ();
-    void BMI();
-    void BNE();
-    void BPL();
-    void BVC();
-    void BVS();
+		//
+		// Stack
+		//
 
-    //
-    // Stack
-    //
+		void PHA();
+		void PLA();
+		void PHP();
+		void PLP();
 
-    void PHA();
-    void PLA();
-    void PHP();
-    void PLP();
+		//
+		// System
+		//
 
-    //
-    // System
-    //
+		void INT_NMI();
+		void INT_RST();
+		void INT_IRQ();
+		void INT_BRK();
 
-    void INT_NMI();
-    void INT_RST();
-    void INT_IRQ();
-    void INT_BRK();
+		void NOP();
 
-    void NOP();
+		//
+		// Unofficial instructions
+		//
 
-    //
-    // Unofficial instructions
-    //
-
-    template <auto Mode> void NOP();
-    template <auto Mode> void LAX();  // LDA then TXA
-    template <auto Mode> void SAX();  // A & X
-    template <auto Mode> void DCP();  // DEC then CMP
-    template <auto Mode> void ISB();  // INC then SBC
-    template <auto Mode> void SLO();  // ASL then ORA
-    template <auto Mode> void RLA();  // ROL then AND
-    template <auto Mode> void SRE();  // LSR then EOR
-    template <auto Mode> void RRA();  // ROR then ADC
-  };
+		template<auto Mode>
+		void NOP();
+		template<auto Mode>
+		void LAX();  // LDA then TXA
+		template<auto Mode>
+		void SAX();  // A & X
+		template<auto Mode>
+		void DCP();  // DEC then CMP
+		template<auto Mode>
+		void ISB();  // INC then SBC
+		template<auto Mode>
+		void SLO();  // ASL then ORA
+		template<auto Mode>
+		void RLA();  // ROL then AND
+		template<auto Mode>
+		void SRE();  // LSR then EOR
+		template<auto Mode>
+		void RRA();  // ROR then ADC
+	};
 }
