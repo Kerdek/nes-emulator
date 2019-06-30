@@ -63,7 +63,10 @@ namespace PPU
 		dot,
 		address_buffer,
 		background_shift_register_l,
-		background_shift_register_h;
+		background_shift_register_h,
+		attribute_latch_l,
+		attribute_latch_h;
+
 	uint8_t
 		x,
 		w,
@@ -79,8 +82,6 @@ namespace PPU
 		background_tile_h,
 		attribute_shift_register_l,
 		attribute_shift_register_h,
-		attribute_latch_l,
-		attribute_latch_h,
 		odd_frame;
 
 	void (*dot_process)();
@@ -198,7 +199,7 @@ namespace PPU
 		background_shift_register_l = (background_shift_register_l & 0xFF00) | background_tile_l;
 		background_shift_register_h = (background_shift_register_h & 0xFF00) | background_tile_h;
 		attribute_latch_l = (attribute_buffer & 0x01);
-		attribute_latch_h = (attribute_buffer & 0x02);
+		attribute_latch_h = (attribute_buffer & 0x02) >> 1;
 	}
 	inline uint8_t sprite_height()
 	{
