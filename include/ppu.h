@@ -8,7 +8,8 @@ namespace platform
 }
 namespace nes
 {
-	class system;
+	class cartridge;
+	class nmi_flipflop;
 
 	class ppu
 	{
@@ -18,7 +19,7 @@ namespace nes
 		ppu & operator=(ppu &&) = delete;
 
 	public:
-		ppu(nes::system & system, platform::display & display);
+		ppu(nes::cartridge & cartridge, platform::display & display, nes::nmi_flipflop & nmi_flipflop);
 
 		void	reset();
 		uint8_t read(uint16_t);

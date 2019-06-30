@@ -1,18 +1,12 @@
 #include "cpu.h"
 
 #include "memory_mapper.h"
+#include "nmi_flipflop.h"
 #include "ppu.h"
 
 #include <iostream>
 #include <stdexcept>
 
-enum interruption_type
-{
-	NMI,
-	RST,
-	IRQ,
-	BRK
-};
 enum addressing_mode
 {
 	Implicit,
@@ -45,13 +39,21 @@ enum flags : uint8_t
 	N = 0x80
 };
 
+constexpr bool crosses_page(uint16_t address, uint8_t length)
+{
+	return ((address + length) & 0xFF00) != ((address & 0xFF00));
+}
+constexpr bool crosses_page(uint16_t address, int8_t length)
+{
+	return ((address + length) & 0xFF00) != ((address & 0xFF00));
+}
+
 namespace nes
 {
-	typedef void (cpu::*op)();
-
-	cpu::cpu(nes::ppu & ppu, nes::memory_mapper & memory_mapper) :
-		ppu{ ppu },
-		memory_mapper{ memory_mapper }
+	cpu::cpu(nes::memory_mapper & memory_mapper, nes::nmi_flipflop & nmi_line, nes::ppu & ppu) :
+		memory_mapper{ memory_mapper },
+		nmi_flipflop { nmi_line },
+		ppu{ ppu }
 	{}
 
 	void cpu::reset()
@@ -67,58 +69,10 @@ namespace nes
 		final_cycle ^= 1;
 	}
 
-	bool cpu::get_flags(uint8_t flags) const
-	{
-		return p & flags;
-	}
-	void cpu::set_flags(uint8_t flags)
-	{
-		p |= flags;
-	}
-	void cpu::clear_flags(uint8_t flags)
-	{
-		p &= ~flags;
-	}
-	void cpu::update_nz(uint8_t value)
-	{
-		p = (p & ~(Z | N)) | (!value * Z) | (value & N);
-	}
-	void cpu::set_a(uint8_t value)
-	{
-		update_nz(a = value);
-	}
-	void cpu::set_x(uint8_t value)
-	{
-		update_nz(x = value);
-	}
-	void cpu::set_y(uint8_t value)
-	{
-		update_nz(y = value);
-	}
-	void cpu::set_pc(uint16_t address)
-	{
-		pc = address;
-	}
-	void cpu::set_ps(uint8_t value)
-	{
-		p = value & ~(B | R);
-	}
-	void cpu::set_nmi()
-	{
-		nmi_flag = true;
-	}
-	void cpu::set_irq()
-	{
-		irq_flag = true;
-	}
+	//
+	// Auxiliary functions
+	//
 
-	void cpu::clock()
-	{
-		ppu.clock();
-		ppu.clock();
-		ppu.clock();
-		++cycle;
-	}
 	uint8_t cpu::read(uint16_t addr)
 	{
 		clock();
@@ -143,12 +97,17 @@ namespace nes
 		}
 	}
 
+	void cpu::clock()
+	{
+		ppu.clock();
+		ppu.clock();
+		ppu.clock();
+		++cycle;
+	}
 	void cpu::step()
 	{
-		if (nmi_flag)
-			INT_NMI();
-		else if (irq_flag && !get_flags(I))
-			INT_IRQ();
+		if (nmi_flipflop.get()) INT_NMI();
+		else if (irq_flag && !get_flags(I))	INT_IRQ();
 
 		auto opcode = read(get_operand<Immediate>());
 
@@ -624,6 +583,48 @@ namespace nes
 		}
 	}
 
+	bool cpu::get_flags(uint8_t flags) const
+	{
+		return p & flags;
+	}
+	void cpu::set_flags(uint8_t flags)
+	{
+		p |= flags;
+	}
+	void cpu::clear_flags(uint8_t flags)
+	{
+		p &= ~flags;
+	}
+	void cpu::update_nz(uint8_t value)
+	{
+		p = (p & ~(Z | N)) | (!value * Z) | (value & N);
+	}
+
+	void cpu::set_a(uint8_t value)
+	{
+		update_nz(a = value);
+	}
+	void cpu::set_x(uint8_t value)
+	{
+		update_nz(x = value);
+	}
+	void cpu::set_y(uint8_t value)
+	{
+		update_nz(y = value);
+	}
+	void cpu::set_pc(uint16_t address)
+	{
+		pc = address;
+	}
+	void cpu::set_ps(uint8_t value)
+	{
+		p = value & ~(B | R);
+	}
+	void cpu::set_irq()
+	{
+		irq_flag = true;
+	}
+
 	template<auto Mode>
 	uint16_t cpu::get_operand()
 	{
@@ -709,12 +710,6 @@ namespace nes
 		return base_addr + y;
 	}
 
-	/* Instructions */
-
-	//
-	// Auxiliary functions
-	//
-
 	void cpu::add(uint8_t value)
 	{
 		uint16_t result = a + value + (p & C);
@@ -722,7 +717,6 @@ namespace nes
 		p = (~(C | O) & p) | (C & (result > 0xFF)) | (O & ((~(a ^ value) & (a ^ result)) >> 1));
 		set_a(static_cast<uint8_t>(result));
 	}
-
 	uint8_t cpu::shift_left(uint8_t value)
 	{
 		uint8_t result = value << 1;
@@ -730,7 +724,6 @@ namespace nes
 		p = (p & ~C) | ((value >> 7) & C);
 		return result;
 	}
-
 	uint8_t cpu::shift_right(uint8_t value)
 	{
 		uint8_t result = value >> 1;
@@ -738,7 +731,6 @@ namespace nes
 		p = (p & ~C) | (value & C);
 		return result;
 	}
-
 	uint8_t cpu::rotate_left(uint8_t value)
 	{
 		uint8_t result = (value << 1) | get_flags(C);
@@ -747,7 +739,6 @@ namespace nes
 		if (value & 0x80) set_flags(C);
 		return result;
 	}
-
 	uint8_t cpu::rotate_right(uint8_t value)
 	{
 		uint8_t result = (value >> 1) | (get_flags(C) << 7);
@@ -763,7 +754,6 @@ namespace nes
 		clear_flags(C);
 		if (reg >= value) set_flags(C);
 	}
-
 	void cpu::branch(bool taken)
 	{
 		auto addr   = get_operand<Relative>();
@@ -781,22 +771,13 @@ namespace nes
 		write(0x100 + s, value);
 		--s;
 	}
-
 	uint8_t cpu::pop()
 	{
 		++s;
 		return read(0x100 + s);
 	}
 
-	bool cpu::crosses_page(uint16_t addr, uint8_t i) const
-	{
-		return ((addr + i) & 0xFF00) != ((addr & 0xFF00));
-	}
-
-	bool cpu::crosses_page(uint16_t addr, int8_t i) const
-	{
-		return ((addr + i) & 0xFF00) != ((addr & 0xFF00));
-	}
+	/* Instructions */
 
 	//
 	// Storage
@@ -809,7 +790,6 @@ namespace nes
 		auto value = read(addr);
 		set_a(value);
 	}
-
 	template<auto Mode>
 	void cpu::LDX()
 	{
@@ -817,7 +797,6 @@ namespace nes
 		auto value = read(addr);
 		set_x(value);
 	}
-
 	template<auto Mode>
 	void cpu::LDY()
 	{
@@ -835,14 +814,12 @@ namespace nes
 					  || Mode == IndirectY_Exception) clock();
 		write(addr, a);
 	}
-
 	template<auto Mode>
 	void cpu::STX()
 	{
 		auto addr = get_operand<Mode>();
 		write(addr, x);
 	}
-
 	template<auto Mode>
 	void cpu::STY()
 	{
@@ -855,31 +832,26 @@ namespace nes
 		set_x(a);
 		clock();
 	}
-
 	void cpu::TAY()
 	{
 		set_y(a);
 		clock();
 	}
-
 	void cpu::TSX()
 	{
 		set_x(s);
 		clock();
 	}
-
 	void cpu::TXA()
 	{
 		set_a(x);
 		clock();
 	}
-
 	void cpu::TXS()
 	{
 		s = x;
 		clock();
 	}
-
 	void cpu::TYA()
 	{
 		set_a(y);
@@ -897,7 +869,6 @@ namespace nes
 		auto value = read(addr);
 		add(value);
 	}
-
 	template<auto Mode>
 	void cpu::SBC()
 	{
@@ -905,7 +876,6 @@ namespace nes
 		auto value = read(addr);
 		add(value ^ 0xFF);
 	}
-
 	template<auto Mode>
 	void cpu::INC()
 	{
@@ -917,7 +887,6 @@ namespace nes
 		clock();
 		write(addr, result);
 	}
-
 	template<auto Mode>
 	void cpu::DEC()
 	{
@@ -929,25 +898,21 @@ namespace nes
 		clock();
 		write(addr, result);
 	}
-
 	void cpu::INX()
 	{
 		clock();
 		set_x(x + 1);
 	}
-
 	void cpu::INY()
 	{
 		clock();
 		set_y(y + 1);
 	}
-
 	void cpu::DEX()
 	{
 		clock();
 		set_x(x - 1);
 	}
-
 	void cpu::DEY()
 	{
 		clock();
@@ -965,7 +930,6 @@ namespace nes
 		auto value = read(addr);
 		set_a(a & value);
 	}
-
 	template<auto Mode>
 	void cpu::ORA()
 	{
@@ -973,7 +937,6 @@ namespace nes
 		auto value = read(addr);
 		set_a(a | value);
 	}
-
 	template<auto Mode>
 	void cpu::EOR()
 	{
@@ -982,7 +945,6 @@ namespace nes
 
 		set_a(a ^ value);
 	}
-
 	template<auto Mode>
 	void cpu::LSR()
 	{
@@ -1000,7 +962,6 @@ namespace nes
 			write(addr, shift_right(value));
 		}
 	}
-
 	template<auto Mode>
 	void cpu::ASL()
 	{
@@ -1018,7 +979,6 @@ namespace nes
 			write(addr, shift_left(value));
 		}
 	}
-
 	template<auto Mode>
 	void cpu::ROL()
 	{
@@ -1036,7 +996,6 @@ namespace nes
 			write(addr, rotate_left(value));
 		}
 	}
-
 	template<auto Mode>
 	void cpu::ROR()
 	{
@@ -1064,37 +1023,31 @@ namespace nes
 		clock();
 		clear_flags(C);
 	}
-
 	void cpu::CLD()
 	{
 		clock();
 		clear_flags(D);
 	}
-
 	void cpu::CLI()
 	{
 		clock();
 		clear_flags(I);
 	}
-
 	void cpu::CLV()
 	{
 		clock();
 		clear_flags(O);
 	}
-
 	void cpu::SEC()
 	{
 		clock();
 		set_flags(C);
 	}
-
 	void cpu::SED()
 	{
 		clock();
 		set_flags(D);
 	}
-
 	void cpu::SEI()
 	{
 		clock();
@@ -1109,7 +1062,6 @@ namespace nes
 
 		compare(a, value);
 	}
-
 	template<auto Mode>
 	void cpu::CPX()
 	{
@@ -1117,7 +1069,6 @@ namespace nes
 		auto value = read(addr);
 		compare(x, value);
 	}
-
 	template<auto Mode>
 	void cpu::CPY()
 	{
@@ -1125,7 +1076,6 @@ namespace nes
 		auto value = read(addr);
 		compare(y, value);
 	}
-
 	template<auto Mode>
 	void cpu::BIT()
 	{
@@ -1146,7 +1096,6 @@ namespace nes
 	{
 		set_pc(get_operand<Mode>());
 	}
-
 	void cpu::JSR()
 	{
 		clock();
@@ -1154,47 +1103,6 @@ namespace nes
 		push(static_cast<uint8_t>(pc + 1));
 		set_pc(get_operand<Absolute>());
 	}
-
-	void cpu::BCC()
-	{
-		branch(get_flags(C) == false);
-	}
-
-	void cpu::BCS()
-	{
-		branch(get_flags(C) == true);
-	}
-
-	void cpu::BEQ()
-	{
-		branch(get_flags(Z) == true);
-	}
-
-	void cpu::BMI()
-	{
-		branch(get_flags(N) == true);
-	}
-
-	void cpu::BNE()
-	{
-		branch(get_flags(Z) == false);
-	}
-
-	void cpu::BPL()
-	{
-		branch(get_flags(N) == false);
-	}
-
-	void cpu::BVC()
-	{
-		branch(get_flags(O) == false);
-	}
-
-	void cpu::BVS()
-	{
-		branch(get_flags(O) == true);
-	}
-
 	void cpu::RTS()
 	{
 		clock();
@@ -1202,13 +1110,46 @@ namespace nes
 		clock();
 		set_pc((pop() | (pop() << 8)) + 1);
 	}
-
 	void cpu::RTI()
 	{
 		clock();
 		clock();
 		set_ps(pop());
 		set_pc(pop() | (pop() << 8));
+	}
+
+
+	void cpu::BCC()
+	{
+		branch(get_flags(C) == false);
+	}
+	void cpu::BCS()
+	{
+		branch(get_flags(C) == true);
+	}
+	void cpu::BEQ()
+	{
+		branch(get_flags(Z) == true);
+	}
+	void cpu::BMI()
+	{
+		branch(get_flags(N) == true);
+	}
+	void cpu::BNE()
+	{
+		branch(get_flags(Z) == false);
+	}
+	void cpu::BPL()
+	{
+		branch(get_flags(N) == false);
+	}
+	void cpu::BVC()
+	{
+		branch(get_flags(O) == false);
+	}
+	void cpu::BVS()
+	{
+		branch(get_flags(O) == true);
 	}
 
 	//
@@ -1220,20 +1161,17 @@ namespace nes
 		clock();
 		push(a);
 	}
-
 	void cpu::PLA()
 	{
 		clock();
 		clock();
 		set_a(pop());
 	}
-
 	void cpu::PHP()
 	{
 		clock();
 		push(p | B | R);
 	}
-
 	void cpu::PLP()
 	{
 		clock();
@@ -1255,9 +1193,8 @@ namespace nes
 		set_flags(I);
 		constexpr uint16_t jmp_addr = 0xFFFA;
 		pc							= (read(jmp_addr + 1) << 8) | read(jmp_addr);
-		nmi_flag					= false;
+		nmi_flipflop.clear();
 	}
-
 	void cpu::INT_RST()
 	{
 		clock();
@@ -1270,7 +1207,6 @@ namespace nes
 		constexpr uint16_t jmp_addr = 0xFFFC;
 		pc							= (read(jmp_addr + 1) << 8) | read(jmp_addr);
 	}
-
 	void cpu::INT_IRQ()
 	{
 		clock();
@@ -1282,7 +1218,6 @@ namespace nes
 		constexpr uint16_t jmp_addr = 0xFFFE;
 		pc							= (read(jmp_addr + 1) << 8) | read(jmp_addr);
 	}
-
 	void cpu::INT_BRK()
 	{
 		clock();
@@ -1309,7 +1244,6 @@ namespace nes
 		get_operand<Mode>();	// Discard it
 		clock();
 	}
-
 	template<auto Mode>
 	void cpu::LAX()
 	{
@@ -1318,14 +1252,12 @@ namespace nes
 		set_x(value);
 		set_a(value);
 	}
-
 	template<auto Mode>
 	void cpu::SAX()
 	{
 		auto addr = get_operand<Mode>();
 		write(addr, a & x);
 	}
-
 	template<auto Mode>
 	void cpu::DCP()
 	{

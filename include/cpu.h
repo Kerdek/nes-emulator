@@ -5,15 +5,17 @@
 
 namespace nes
 {
-	class ppu;
 	class memory_mapper;
+	class nmi_flipflop;
+	class ppu;
 
 	class cpu
 	{
 		friend class debugger;
 
-		nes::ppu &			 ppu;
 		nes::memory_mapper & memory_mapper;
+		nes::nmi_flipflop &	 nmi_flipflop;
+		nes::ppu &			 ppu;
 
 		uint8_t  a  = 0;
 		uint8_t  x  = 0;
@@ -22,8 +24,33 @@ namespace nes
 		uint8_t  s  = 0;
 		uint8_t  p  = 0;
 
-		bool nmi_flag = false;
 		bool irq_flag = false;
+		int cycle		= 0;
+		int final_cycle = 29780;
+
+		cpu(cpu const &) = delete;
+		cpu(cpu &&)		 = delete;
+		cpu & operator=(cpu const &) = delete;
+		cpu & operator=(cpu &&) = delete;
+
+	public:
+		cpu(nes::memory_mapper & memory_mapper, nes::nmi_flipflop & nmi_flipflop, nes::ppu & ppu);
+
+		void reset();
+		void run_frame();
+
+	private:
+
+		//
+		// Auxiliary
+		//
+
+		uint8_t read(uint16_t);
+		void	write(uint16_t, uint8_t);
+		void	oam_dma(uint8_t value);
+
+		void    clock();
+		void    step();
 
 		bool get_flags(uint8_t) const;
 		void set_flags(uint8_t);
@@ -37,60 +64,22 @@ namespace nes
 		void set_ps(uint8_t);
 		void set_irq();
 
-		void clock();
-
-		uint8_t read(uint16_t);
-		void	write(uint16_t, uint8_t);
-		void	oam_dma(uint8_t value);
-
-		int cycle		= 0;
-		int final_cycle = 29780;
-
-		cpu(cpu const &) = delete;
-		cpu(cpu &&)		 = delete;
-		cpu & operator=(cpu const &) = delete;
-		cpu & operator=(cpu &&) = delete;
-
-	public:
-		cpu(nes::ppu & ppu, nes::memory_mapper & memory_mapper);
-
-		void reset();
-		void run_frame();
-
-		void set_nmi();
-
-	private:
-		//
-		// All functions defined here are
-		// implemented in cpu_instructions.cpp
-		//
-
-		void step();
-
-		/* Instructions */
-
-		//
-		// Auxiliary
-		//
-
 		template<auto Mode>
 		uint16_t get_operand();
 
 		void	add(uint8_t);
-		uint8_t shift_left(uint8_t);	 // Arithmetic left shift
-		uint8_t shift_right(uint8_t);	// Logical right shift
+		uint8_t shift_left(uint8_t);
+		uint8_t shift_right(uint8_t);
 		uint8_t rotate_left(uint8_t);
 		uint8_t rotate_right(uint8_t);
 
 		void compare(uint8_t, uint8_t);
-
 		void branch(bool);
 
 		void	push(uint8_t);
 		uint8_t pop();
 
-		bool crosses_page(uint16_t, uint8_t) const;
-		bool crosses_page(uint16_t, int8_t) const;
+		/* Instructions */
 
 		//
 		// Storage

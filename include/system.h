@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include "debugger.h"
 #include "memory_mapper.h"
+#include "nmi_flipflop.h"
 #include "ppu.h"
 #include "ram.h"
 
@@ -21,9 +22,7 @@ namespace PPU
 
 	uint8_t read_memory(uint16_t addr);
 	void	write_memory(uint16_t addr, uint8_t v);
-	template<Scanline s>
-	void line_cycle();
-	void step();
+	void	dot_241_1();
 }
 
 namespace nes
@@ -32,16 +31,17 @@ namespace nes
 	{
 		friend uint8_t PPU::read_memory(uint16_t addr);
 		friend void	PPU::write_memory(uint16_t addr, uint8_t v);
-		friend void PPU::step();
+		friend void PPU::dot_241_1();
 
-		nes::ram		   ram;
-		nes::ppu		   ppu;
-		nes::apu		   apu;
-		nes::controller	controller;
-		nes::cartridge	 cartridge;
-		nes::memory_mapper memory_mapper;
-		nes::cpu		   cpu;
-		nes::debugger	  debugger;
+		nes::nmi_flipflop	nmi_flipflop;
+		nes::ram			ram;
+		nes::ppu			ppu;
+		nes::apu			apu;
+		nes::controller		controller;
+		nes::cartridge		cartridge;
+		nes::memory_mapper	memory_mapper;
+		nes::cpu			cpu;
+		nes::debugger		debugger;
 
 		system(system const &) = delete;
 		system(system &&)	  = delete;
