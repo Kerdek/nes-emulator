@@ -24,7 +24,6 @@ namespace nes
 		void	reset();
 		uint8_t read(uint16_t);
 		void	write(uint16_t, uint8_t);
-		void	set_mirroring(int);
 		void	clock();
 	};
 }

@@ -10,9 +10,8 @@ namespace nes
   class mapper2 : public mapper
   {
   public:
-    mapper2(
-        nes::ppu & ppu,
-        nes::cartridge_info const & info,
+	mapper2(
+		nes::cartridge_info & info,
         std::vector<uint8_t> && prg,
         std::vector<uint8_t> && chr);
 

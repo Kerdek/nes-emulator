@@ -12,7 +12,6 @@ namespace nes
 	{
 		enum mirroring
 		{
-			Unset = -1,
 			Horizontal,
 			Vertical
 		};
@@ -25,8 +24,8 @@ namespace nes
 		uint16_t prg_banks;
 		uint16_t chr_banks;
 		uint32_t prg_ram_size;
-		int		 mirroring = mirroring::Unset;
-		bool	 chr_ram   = false;
+		int		 mirroring;
+		bool	 chr_ram = false;
 	};
 	class mapper
 	{
@@ -36,9 +35,7 @@ namespace nes
 		mapper & operator=(mapper &&) = delete;
 
 	protected:
-		nes::ppu & ppu;
-
-		nes::cartridge_info const & info;
+		nes::cartridge_info &		info;
 		std::vector<uint8_t>		prg;
 		std::vector<uint8_t>		chr;
 		std::vector<uint8_t>		prg_ram;
@@ -47,8 +44,7 @@ namespace nes
 
 	public:
 		mapper(
-			nes::ppu &					ppu,
-			nes::cartridge_info const & info,
+			nes::cartridge_info & info,
 			std::vector<uint8_t> &&		prg,
 			std::vector<uint8_t> &&		chr);
 

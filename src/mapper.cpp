@@ -6,11 +6,9 @@
 namespace nes
 {
 	mapper::mapper(
-		nes::ppu &					ppu,
-		nes::cartridge_info const & info,
+		nes::cartridge_info &		info,
 		std::vector<uint8_t> &&		prg,
 		std::vector<uint8_t> &&		chr) :
-		ppu{ ppu },
 		info{ info },
 		prg{ std::move(prg) },
 		chr{ std::move(chr) }

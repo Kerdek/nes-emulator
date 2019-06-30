@@ -12,8 +12,7 @@
 
 namespace nes
 {
-	cartridge::cartridge(nes::ppu & ppu) :
-		ppu{ ppu }
+	cartridge::cartridge()
 	{}
 
 	void cartridge::load(std::filesystem::path const & rom_file)
@@ -55,13 +54,13 @@ namespace nes
 		switch (info.mapper_num)
 		{
 		case 0:
-			mapper = std::make_unique<nes::mapper0>(ppu, info, std::move(prg), std::move(chr));
+			mapper = std::make_unique<nes::mapper0>(info, std::move(prg), std::move(chr));
 			break;
 		case 1:
-			mapper = std::make_unique<nes::mapper1>(ppu, info, std::move(prg), std::move(chr));
+			mapper = std::make_unique<nes::mapper1>(info, std::move(prg), std::move(chr));
 			break;
 		case 2:
-			mapper = std::make_unique<nes::mapper2>(ppu, info, std::move(prg), std::move(chr));
+			mapper = std::make_unique<nes::mapper2>(info, std::move(prg), std::move(chr));
 			break;
 		default:
 			throw std::runtime_error("Mapper not implemented");
@@ -76,12 +75,16 @@ namespace nes
 	{
 		mapper->prg_write(addr, value);
 	}
-	uint8_t cartridge::chr_read(uint16_t addr) const
+	uint8_t cartridge::read_chr(uint16_t addr) const
 	{
 		return mapper->chr_read(addr);
 	}
-	void cartridge::chr_write(uint16_t addr, uint8_t value)
+	void cartridge::write_chr(uint16_t addr, uint8_t value)
 	{
 		mapper->chr_write(addr, value);
+	}
+	uint8_t cartridge::get_mirroring()
+	{
+		return info.mirroring;
 	}
 }

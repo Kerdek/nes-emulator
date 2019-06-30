@@ -4,20 +4,17 @@
 namespace nes
 {
   mapper2::mapper2(
-      nes::ppu & ppu,
-      nes::cartridge_info const & info,
+	  nes::cartridge_info & info,
       std::vector<uint8_t> && prg,
       std::vector<uint8_t> && chr)
-    : mapper(ppu, info, std::move(prg), std::move(chr))
+	: mapper(info, std::move(prg), std::move(chr))
   { }
 
   void mapper2::reset()
   {
     set_prg_map<16>(0, 0);
     set_prg_map<16>(1, -1);
-    set_chr_map<8>(0, 0);
-
-    ppu.set_mirroring(info.mirroring);
+	set_chr_map<8>(0, 0);
   }
 
   void mapper2::prg_write(uint16_t addr, uint8_t value)

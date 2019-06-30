@@ -19,9 +19,8 @@ namespace nes
     void apply();
 
   public:
-    mapper1(
-        nes::ppu & ppu,
-        nes::cartridge_info const & info,
+	mapper1(
+		nes::cartridge_info & info,
         std::vector<uint8_t> && prg,
         std::vector<uint8_t> && chr);
 

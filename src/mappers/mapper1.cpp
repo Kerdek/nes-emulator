@@ -4,11 +4,10 @@
 namespace nes
 {
   mapper1::mapper1(
-      nes::ppu & ppu,
-      nes::cartridge_info const & info,
+	  nes::cartridge_info & info,
       std::vector<uint8_t> && prg,
       std::vector<uint8_t> && chr) :
-    mapper{ ppu, info, std::move(prg), std::move(chr) }
+	mapper{ info, std::move(prg), std::move(chr) }
   { }
 
   void mapper1::reset()
@@ -54,8 +53,8 @@ namespace nes
     }
     switch (control & 0b11)
     {
-      case 2: ppu.set_mirroring(Vertical); break;
-      case 3: ppu.set_mirroring(Horizontal); break;
+	  case 2: info.mirroring = Vertical; break;
+	  case 3: info.mirroring = Horizontal; break;
     }
   }
 
