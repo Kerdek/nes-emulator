@@ -63,9 +63,7 @@ namespace PPU
 		dot,
 		address_buffer,
 		background_shift_register_l,
-		background_shift_register_h,
-		attribute_latch_l,
-		attribute_latch_h;
+		background_shift_register_h;
 
 	uint8_t
 		x,
@@ -82,7 +80,9 @@ namespace PPU
 		background_tile_h,
 		attribute_shift_register_l,
 		attribute_shift_register_h,
-		odd_frame;
+		odd_frame,
+		attribute_latch_l,
+		attribute_latch_h;
 
 	void (*dot_process)();
 	void dot_0_0();
@@ -263,8 +263,6 @@ namespace PPU
 		uint8_t	 obj_priority = 0;
 		int16_t  pxx         = dot - 2;
 
-		if (line < 240 && pxx >= 0 && pxx < 256)
-		{
 			if ((0x08 & mask_flags) && ((0x02 & mask_flags) || pxx >= 8))
 			{
 				palette = (NTH_BIT(background_shift_register_h, 15 - x) << 1) | NTH_BIT(background_shift_register_l, 15 - x);
@@ -288,7 +286,7 @@ namespace PPU
 			}
 			if (obj_palette && (palette == 0 || obj_priority == 0)) palette = obj_palette;
 			framebuffer[line * 256 + pxx] = nes_palette[read_memory(0x3F00 + (background_enabled() ? palette : 0))];
-		}
+
 		background_shift_register_l <<= 1;
 		background_shift_register_h <<= 1;
 		attribute_shift_register_l = (attribute_shift_register_l << 1) | attribute_latch_l;
@@ -319,15 +317,18 @@ namespace PPU
 	}
 	void dot_0_258()
 	{
+		oam_address = 0;
 		if (dot == 320) dot_process = &dot_321;
 	}
 	void dot_261_280()
 	{
+		oam_address = 0;
 		v_update();
 		if (dot == 304) dot_process = &dot_0_258;
 	}
 	void dot_261_258()
 	{
+		oam_address = 0;
 		if (dot == 279) dot_process = &dot_261_280;
 	}
 	void dot_261_257()
@@ -471,7 +472,8 @@ namespace PPU
 			oam_address = value;
 			break;
 		case OAMDATA:
-			oam_ram[oam_address++] = value;
+			oam_ram[oam_address] = value;
+			oam_address = (oam_address + 1) % 0x0100;
 			break;
 		case PPUSCROLL:
 			if ((w = !w))

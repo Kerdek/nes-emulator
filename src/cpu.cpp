@@ -78,22 +78,23 @@ namespace nes
 		clock();
 		return memory_mapper.read(addr);
 	}
-	void cpu::write(uint16_t addr, uint8_t value)
+	void cpu::write(uint16_t address, uint8_t value)
 	{
 		clock();
-		if (addr == 0x4014)
+		if (address == 0x4014)
 			oam_dma(value);
 		else
-			memory_mapper.write(addr, value);
+			memory_mapper.write(address, value);
 	}
-	void cpu::oam_dma(uint8_t value)
+	void cpu::oam_dma(uint8_t address)
 	{
 		if (cycle & 1) clock();
-		for (size_t i = 0; i < 1 << 8; ++i)
+		for (uint16_t i = 0; i < 0x0100; ++i)
 		{
 			clock();
+			uint8_t value = memory_mapper.read((address << 0x0008) + i);
 			clock();
-			memory_mapper.write(0x2004, memory_mapper.read((value << 8) + i));
+			memory_mapper.write(0x2004, value);
 		}
 	}
 
