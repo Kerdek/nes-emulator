@@ -7,7 +7,7 @@ namespace nes
 		bool flipflop;
 
 		nmi_flipflop(nmi_flipflop const &) = delete;
-		nmi_flipflop(nmi_flipflop &&) = delete;
+		nmi_flipflop(nmi_flipflop &&)	  = delete;
 		nmi_flipflop & operator=(nmi_flipflop const &) = delete;
 		nmi_flipflop & operator=(nmi_flipflop &&) = delete;
 

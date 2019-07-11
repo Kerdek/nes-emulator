@@ -52,7 +52,7 @@ namespace nes
 {
 	cpu::cpu(nes::memory_mapper & memory_mapper, nes::nmi_flipflop & nmi_line, nes::ppu & ppu) :
 		memory_mapper{ memory_mapper },
-		nmi_flipflop { nmi_line },
+		nmi_flipflop{ nmi_line },
 		ppu{ ppu }
 	{}
 
@@ -107,8 +107,10 @@ namespace nes
 	}
 	void cpu::step()
 	{
-		if (nmi_flipflop.get()) INT_NMI();
-		else if (irq_flag && !get_flags(I))	INT_IRQ();
+		if (nmi_flipflop.get())
+			INT_NMI();
+		else if (irq_flag && !get_flags(I))
+			INT_IRQ();
 
 		auto opcode = read(get_operand<Immediate>());
 
@@ -1118,7 +1120,6 @@ namespace nes
 		set_ps(pop());
 		set_pc(pop() | (pop() << 8));
 	}
-
 
 	void cpu::BCC()
 	{

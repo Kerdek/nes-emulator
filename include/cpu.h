@@ -14,7 +14,7 @@ namespace nes
 		friend class debugger;
 
 		nes::memory_mapper & memory_mapper;
-		nes::nmi_flipflop &	 nmi_flipflop;
+		nes::nmi_flipflop &  nmi_flipflop;
 		nes::ppu &			 ppu;
 
 		uint8_t  a  = 0;
@@ -24,9 +24,9 @@ namespace nes
 		uint8_t  s  = 0;
 		uint8_t  p  = 0;
 
-		bool irq_flag = false;
-		int cycle		= 0;
-		int final_cycle = 29780;
+		bool irq_flag	= false;
+		int  cycle		 = 0;
+		int  final_cycle = 29780;
 
 		cpu(cpu const &) = delete;
 		cpu(cpu &&)		 = delete;
@@ -40,7 +40,6 @@ namespace nes
 		void run_frame();
 
 	private:
-
 		//
 		// Auxiliary
 		//
@@ -49,8 +48,8 @@ namespace nes
 		void	write(uint16_t, uint8_t);
 		void	oam_dma(uint8_t value);
 
-		void    clock();
-		void    step();
+		void clock();
+		void step();
 
 		bool get_flags(uint8_t) const;
 		void set_flags(uint8_t);

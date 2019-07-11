@@ -31,17 +31,17 @@ namespace nes
 	{
 		friend uint8_t PPU::read_memory(uint16_t addr);
 		friend void	PPU::write_memory(uint16_t addr, uint8_t v);
-		friend void PPU::dot_241_1();
+		friend void	PPU::dot_241_1();
 
-		nes::cartridge		cartridge;
-		nes::ram			ram;
-		nes::apu			apu;
-		nes::controller		controller;
-		nes::nmi_flipflop	nmi_flipflop;
-		nes::ppu			ppu;
-		nes::memory_mapper	memory_mapper;
-		nes::cpu			cpu;
-		nes::debugger		debugger;
+		nes::cartridge	 cartridge;
+		nes::ram		   ram;
+		nes::apu		   apu;
+		nes::controller	controller;
+		nes::nmi_flipflop  nmi_flipflop;
+		nes::ppu		   ppu;
+		nes::memory_mapper memory_mapper;
+		nes::cpu		   cpu;
+		nes::debugger	  debugger;
 
 		system(system const &) = delete;
 		system(system &&)	  = delete;

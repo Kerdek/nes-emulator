@@ -4,7 +4,7 @@ namespace nes
 {
 	nmi_flipflop::nmi_flipflop() :
 		flipflop{ true }
-	{ }
+	{}
 	bool nmi_flipflop::get() const
 	{
 		return flipflop;

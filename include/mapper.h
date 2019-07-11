@@ -35,18 +35,18 @@ namespace nes
 		mapper & operator=(mapper &&) = delete;
 
 	protected:
-		nes::cartridge_info &		info;
-		std::vector<uint8_t>		prg;
-		std::vector<uint8_t>		chr;
-		std::vector<uint8_t>		prg_ram;
-		std::array<uint32_t, 4>		prg_map{};
-		std::array<uint32_t, 8>		chr_map{};
+		nes::cartridge_info &   info;
+		std::vector<uint8_t>	prg;
+		std::vector<uint8_t>	chr;
+		std::vector<uint8_t>	prg_ram;
+		std::array<uint32_t, 4> prg_map{};
+		std::array<uint32_t, 8> chr_map{};
 
 	public:
 		mapper(
-			nes::cartridge_info & info,
-			std::vector<uint8_t> &&		prg,
-			std::vector<uint8_t> &&		chr);
+			nes::cartridge_info &   info,
+			std::vector<uint8_t> && prg,
+			std::vector<uint8_t> && chr);
 
 		virtual ~mapper()	= default;
 		virtual void reset() = 0;

@@ -20,16 +20,71 @@ enum ppu_map : uint8_t
 	PPUDATA   = 0x07
 };
 
-constexpr uint32_t nes_palette[] =
-{
-	0x7C7C7C, 0xFC0000, 0xBC0000, 0xBC2844, 0x840094, 0x2000A8, 0x0010A8, 0x001488,	//
-	0x003050, 0x007800, 0x006800, 0x005800, 0x584000, 0x000000, 0x000000, 0x000000,	//
-	0xBCBCBC, 0xF87800, 0xF85800, 0xFC4468, 0xCC00D8, 0x5800E4, 0x0038F8, 0x105CE4,	//
-	0x007CAC, 0x00B800, 0x00A800, 0x44A800, 0x888800, 0x000000, 0x000000, 0x000000,	//
-	0xF8F8F8, 0xFCBC3C, 0xFC8868, 0xF87898, 0xF878F8, 0x9858F8, 0x5878F8, 0x44A0FC,	//
-	0x00B8F8, 0x18F8B8, 0x54D858, 0x98F858, 0xD8E800, 0x787878, 0x000000, 0x000000,	//
-	0xFCFCFC, 0xFCE4A4, 0xF8B8B8, 0xF8B8D8, 0xF8B8F8, 0xC0A4F8, 0xB0D0F0, 0xA8E0FC,	//
-	0x78D8F8, 0x78F8D8, 0xB8F8B8, 0xD8F8B8, 0xFCFC00, 0xF8D8F8, 0x000000, 0x000000	//
+constexpr uint32_t nes_palette[] = {
+	0x7C7C7C,
+	0xFC0000,
+	0xBC0000,
+	0xBC2844,
+	0x840094,
+	0x2000A8,
+	0x0010A8,
+	0x001488,	//
+	0x003050,
+	0x007800,
+	0x006800,
+	0x005800,
+	0x584000,
+	0x000000,
+	0x000000,
+	0x000000,	//
+	0xBCBCBC,
+	0xF87800,
+	0xF85800,
+	0xFC4468,
+	0xCC00D8,
+	0x5800E4,
+	0x0038F8,
+	0x105CE4,	//
+	0x007CAC,
+	0x00B800,
+	0x00A800,
+	0x44A800,
+	0x888800,
+	0x000000,
+	0x000000,
+	0x000000,	//
+	0xF8F8F8,
+	0xFCBC3C,
+	0xFC8868,
+	0xF87898,
+	0xF878F8,
+	0x9858F8,
+	0x5878F8,
+	0x44A0FC,	//
+	0x00B8F8,
+	0x18F8B8,
+	0x54D858,
+	0x98F858,
+	0xD8E800,
+	0x787878,
+	0x000000,
+	0x000000,	//
+	0xFCFCFC,
+	0xFCE4A4,
+	0xF8B8B8,
+	0xF8B8D8,
+	0xF8B8F8,
+	0xC0A4F8,
+	0xB0D0F0,
+	0xA8E0FC,	//
+	0x78D8F8,
+	0x78F8D8,
+	0xB8F8B8,
+	0xD8F8B8,
+	0xFCFC00,
+	0xF8D8F8,
+	0x000000,
+	0x000000	//
 };
 
 namespace PPU
@@ -49,11 +104,11 @@ namespace PPU
 	platform::display * display;
 	nes::nmi_flipflop * nmi_flipflop;
 
-	std::array<uint8_t , 0x0800> nametable_ram;
-	std::array<uint8_t , 0x20>	 palette_ram;
-	std::array<uint8_t , 0x0100> oam_ram;
-	std::array<sprite  , 0x08>	 oam_0;
-	std::array<sprite  , 0x08>	 oam_1;
+	std::array<uint8_t, 0x0800>  nametable_ram;
+	std::array<uint8_t, 0x20>	palette_ram;
+	std::array<uint8_t, 0x0100>  oam_ram;
+	std::array<sprite, 0x08>	 oam_0;
+	std::array<sprite, 0x08>	 oam_1;
 	std::array<uint32_t, 0xF000> framebuffer;
 
 	uint16_t
@@ -101,15 +156,15 @@ namespace PPU
 	inline uint16_t attributes_address()
 	{
 		return (0x23C0)
-			 | (0x0C00 & (v     ))
-			 | (0x0038 & (v >> 4))
-			 | (0x0007 & (v >> 2));
+			   | (0x0C00 & (v))
+			   | (0x0038 & (v >> 4))
+			   | (0x0007 & (v >> 2));
 	}
 	inline uint16_t background_address()
 	{
-		return (0x1000 & (control_flags <<  8))
-			 | (0x0FF0 & (name_buffer   <<  4))
-			 | (0x0007 & (v             >> 12));
+		return (0x1000 & (control_flags << 8))
+			   | (0x0FF0 & (name_buffer << 4))
+			   | (0x0007 & (v >> 12));
 	}
 	inline uint16_t map_nametable_address(uint16_t address)
 	{
@@ -166,8 +221,10 @@ namespace PPU
 	inline void h_scroll()
 	{
 		if (!background_enabled()) return;
-		if ((0x001F & v) == 0x001F) v ^= 0x041F;
-		else v = (~0x001F & v) | (0x001F & (v + 0x0001));
+		if ((0x001F & v) == 0x001F)
+			v ^= 0x041F;
+		else
+			v = (~0x001F & v) | (0x001F & (v + 0x0001));
 	}
 	inline void v_scroll()
 	{
@@ -176,30 +233,34 @@ namespace PPU
 		if ((0x7000 & v) == 0x7000)
 		{
 			v1 = ~0x03E0 & v1;
-			if ((0x03E0 & v) == 0x03E0) v = v1;
-			else if ((0x03E0 & v) == 0x03A0) v = v1 ^ 0x0800;
-			else v = v1 | (0x03E0 & (v + 0x0020));
+			if ((0x03E0 & v) == 0x03E0)
+				v = v1;
+			else if ((0x03E0 & v) == 0x03A0)
+				v = v1 ^ 0x0800;
+			else
+				v = v1 | (0x03E0 & (v + 0x0020));
 		}
-		else v = v1 | (0x7000 & (v + 0x1000));
+		else
+			v = v1 | (0x7000 & (v + 0x1000));
 	}
 	inline void h_update()
 	{
 		if (!background_enabled()) return;
 		v = (~0x041F & v)
-		  | ( 0x041F & t);
+			| (0x041F & t);
 	}
 	inline void v_update()
 	{
 		if (!background_enabled()) return;
 		v = (~0x7BE0 & v)
-		  | ( 0x7BE0 & t);
+			| (0x7BE0 & t);
 	}
 	inline void reload_shift_registers()
 	{
 		background_shift_register_l = (background_shift_register_l & 0xFF00) | background_tile_l;
 		background_shift_register_h = (background_shift_register_h & 0xFF00) | background_tile_h;
-		attribute_latch_l = (attribute_buffer & 0x01);
-		attribute_latch_h = (attribute_buffer & 0x02) >> 1;
+		attribute_latch_l			= (attribute_buffer & 0x01);
+		attribute_latch_h			= (attribute_buffer & 0x02) >> 1;
 	}
 	inline uint8_t sprite_height()
 	{
@@ -209,13 +270,13 @@ namespace PPU
 	{
 		for (int i = 0; i < 8; i++)
 		{
-			oam_1[i].id	          = 0x40;
-			oam_1[i].y		      = 0xFF;
-			oam_1[i].tile         = 0xFF;
-			oam_1[i].attributes   = 0xFF;
-			oam_1[i].x		      = 0xFF;
-			oam_1[i].data_l       = 0x00;
-			oam_1[i].data_h       = 0x00;
+			oam_1[i].id			= 0x40;
+			oam_1[i].y			= 0xFF;
+			oam_1[i].tile		= 0xFF;
+			oam_1[i].attributes = 0xFF;
+			oam_1[i].x			= 0xFF;
+			oam_1[i].data_l		= 0x00;
+			oam_1[i].data_h		= 0x00;
 		}
 	}
 	inline void evaluate_sprites()
@@ -226,12 +287,12 @@ namespace PPU
 			int sprite_line = line - oam_ram[i << 2];
 			if (sprite_line >= 0 && sprite_line < sprite_height())
 			{
-				oam_1[n].id         = i;
-				oam_1[n].y	        = oam_ram[(i << 2) + 0x0000];
-				oam_1[n].tile       = oam_ram[(i << 2) + 0x0001];
+				oam_1[n].id			= i;
+				oam_1[n].y			= oam_ram[(i << 2) + 0x0000];
+				oam_1[n].tile		= oam_ram[(i << 2) + 0x0001];
 				oam_1[n].attributes = oam_ram[(i << 2) + 0x0002];
-				oam_1[n].x	        = oam_ram[(i << 2) + 0x0003];
-				if(n++ == 8)
+				oam_1[n].x			= oam_ram[(i << 2) + 0x0003];
+				if (n++ == 8)
 				{
 					status_flags |= 0x20;
 					return;
@@ -243,11 +304,10 @@ namespace PPU
 	{
 		for (int i = 0; i < 8; i++)
 		{
-			oam_0[i] = oam_1[i];
-			uint16_t address =
-				(sprite_height() == 0x10)
-					? (0x1000 & (oam_0[i].tile << 12)) | (0x0FE0 & (oam_0[i].tile << 4))
-					: (0x1000 & (control_flags        <<  9)) | (         (oam_0[i].tile << 4));
+			oam_0[i]		 = oam_1[i];
+			uint16_t address = (sprite_height() == 0x10)
+								   ? (0x1000 & (oam_0[i].tile << 12)) | (0x0FE0 & (oam_0[i].tile << 4))
+								   : (0x1000 & (control_flags << 9)) | ((oam_0[i].tile << 4));
 
 			uint8_t sprite_line = (line - oam_0[i].y) % sprite_height();
 			if (oam_0[i].attributes & 0x80) sprite_line ^= sprite_height() - 0x01;
@@ -258,34 +318,34 @@ namespace PPU
 	}
 	inline void pixel()
 	{
-		uint8_t  palette     = 0;
-		uint8_t  obj_palette  = 0;
-		uint8_t	 obj_priority = 0;
-		int16_t  pxx         = dot - 2;
+		uint8_t palette		 = 0;
+		uint8_t obj_palette  = 0;
+		uint8_t obj_priority = 0;
+		int16_t pxx			 = dot - 2;
 
-			if ((0x08 & mask_flags) && ((0x02 & mask_flags) || pxx >= 8))
+		if ((0x08 & mask_flags) && ((0x02 & mask_flags) || pxx >= 8))
+		{
+			palette = (NTH_BIT(background_shift_register_h, 15 - x) << 1) | NTH_BIT(background_shift_register_l, 15 - x);
+			if (palette) palette |= ((NTH_BIT(attribute_shift_register_h, 7 - x) << 1) | NTH_BIT(attribute_shift_register_l, 7 - x)) << 2;
+		}
+		if ((0x10 & mask_flags) && ((0x04 & mask_flags) || pxx >= 8))
+		{
+			for (int i = 7; i >= 0; i--)
 			{
-				palette = (NTH_BIT(background_shift_register_h, 15 - x) << 1) | NTH_BIT(background_shift_register_l, 15 - x);
-				if (palette) palette |= ((NTH_BIT(attribute_shift_register_h, 7 - x) << 1) | NTH_BIT(attribute_shift_register_l, 7 - x)) << 2;
+				if (oam_0[i].id == 64) continue;
+				unsigned spx = pxx - oam_0[i].x;
+				if (spx >= 8) continue;
+				if (oam_0[i].attributes & 0x40) spx ^= 7;
+				uint8_t spr_palette = (NTH_BIT(oam_0[i].data_h, 7 - spx) << 1) | NTH_BIT(oam_0[i].data_l, 7 - spx);
+				if (spr_palette == 0) continue;	// Transparent pixel.
+				if (oam_0[i].id == 0 && palette && pxx != 255) status_flags |= 0x40;
+				spr_palette |= (oam_0[i].attributes & 3) << 2;
+				obj_palette  = spr_palette + 16;
+				obj_priority = oam_0[i].attributes & 0x20;
 			}
-			if ((0x10 & mask_flags) && ((0x04 & mask_flags) || pxx >= 8))
-			{
-				for (int i = 7; i >= 0; i--)
-				{
-					if (oam_0[i].id == 64) continue;
-					unsigned spx = pxx - oam_0[i].x;
-					if (spx >= 8) continue;
-					if (oam_0[i].attributes & 0x40) spx ^= 7;
-					uint8_t spr_palette = (NTH_BIT(oam_0[i].data_h, 7 - spx) << 1) | NTH_BIT(oam_0[i].data_l, 7 - spx);
-					if (spr_palette == 0) continue;	// Transparent pixel.
-					if (oam_0[i].id == 0 && palette && pxx != 255) status_flags |= 0x40;
-					spr_palette |= (oam_0[i].attributes & 3) << 2;
-					obj_palette  = spr_palette + 16;
-					obj_priority = oam_0[i].attributes & 0x20;
-				}
-			}
-			if (obj_palette && (palette == 0 || obj_priority == 0)) palette = obj_palette;
-			framebuffer[line * 256 + pxx] = nes_palette[read_memory(0x3F00 + (background_enabled() ? palette : 0))];
+		}
+		if (obj_palette && (palette == 0 || obj_priority == 0)) palette = obj_palette;
+		framebuffer[line * 256 + pxx] = nes_palette[read_memory(0x3F00 + (background_enabled() ? palette : 0))];
 
 		background_shift_register_l <<= 1;
 		background_shift_register_h <<= 1;
@@ -296,13 +356,15 @@ namespace PPU
 	void dot_340()
 	{
 		name_buffer = read_memory(address_buffer);
-		if (line == 239) dot_process = &dot_240_0;
-		else dot_process = &dot_0_0;
+		if (line == 239)
+			dot_process = &dot_240_0;
+		else
+			dot_process = &dot_0_0;
 	}
 	void dot_339()
 	{
 		address_buffer = nametable_address();
-		dot_process = &dot_340;
+		dot_process	= &dot_340;
 	}
 	void dot_338()
 	{
@@ -313,7 +375,7 @@ namespace PPU
 	{
 		load_sprites();
 		address_buffer = nametable_address();
-		dot_process = &dot_nt_even;
+		dot_process	= &dot_nt_even;
 	}
 	void dot_0_258()
 	{
@@ -351,8 +413,10 @@ namespace PPU
 		pixel();
 		background_tile_h = read_memory(address_buffer);
 		v_scroll();
-		if (line == 261) dot_process = &dot_261_257;
-		else dot_process = &dot_0_257;
+		if (line == 261)
+			dot_process = &dot_261_257;
+		else
+			dot_process = &dot_0_257;
 	}
 	void dot_bgh_even()
 	{
@@ -365,20 +429,22 @@ namespace PPU
 	{
 		pixel();
 		address_buffer += 8;
-		if(dot == 255) dot_process = &dot_256;
-		else dot_process = &dot_bgh_even;
+		if (dot == 255)
+			dot_process = &dot_256;
+		else
+			dot_process = &dot_bgh_even;
 	}
 	void dot_bgl_even()
 	{
 		pixel();
 		background_tile_l = read_memory(address_buffer);
-		dot_process = &dot_bgh_odd;
+		dot_process		  = &dot_bgh_odd;
 	}
 	void dot_bgl_odd()
 	{
 		pixel();
 		address_buffer = background_address();
-		dot_process = &dot_bgl_even;
+		dot_process	= &dot_bgl_even;
 	}
 	void dot_at_even()
 	{
@@ -392,7 +458,7 @@ namespace PPU
 	{
 		pixel();
 		address_buffer = attributes_address();
-		dot_process = &dot_at_even;
+		dot_process	= &dot_at_even;
 	}
 	void dot_nt_even()
 	{
@@ -405,8 +471,10 @@ namespace PPU
 		pixel();
 		address_buffer = nametable_address();
 		reload_shift_registers();
-		if(dot == 337) dot_process = &dot_338;
-		else dot_process = &dot_nt_even;
+		if (dot == 337)
+			dot_process = &dot_338;
+		else
+			dot_process = &dot_nt_even;
 	}
 	void dot_261_1()
 	{
@@ -438,7 +506,7 @@ namespace PPU
 	{
 		clear_oam_1();
 		address_buffer = nametable_address();
-		dot_process = &dot_nt_even;
+		dot_process	= &dot_nt_even;
 	}
 	void dot_0_0()
 	{
@@ -447,7 +515,8 @@ namespace PPU
 			++dot;
 			dot_0_1();
 		}
-		else dot_process = &dot_0_1;
+		else
+			dot_process = &dot_0_1;
 	}
 
 	void clock()
@@ -462,8 +531,8 @@ namespace PPU
 		switch (index)
 		{
 		case PPUCTRL:
-			control_flags  = value;
-			t = (~0x0C00 & t) | (0x0C00 & (control_flags << 10));
+			control_flags = value;
+			t			  = (~0x0C00 & t) | (0x0C00 & (control_flags << 10));
 			break;
 		case PPUMASK:
 			mask_flags = value;
@@ -473,7 +542,7 @@ namespace PPU
 			break;
 		case OAMDATA:
 			oam_ram[oam_address] = value;
-			oam_address = (oam_address + 1) % 0x0100;
+			oam_address			 = (oam_address + 1) % 0x0100;
 			break;
 		case PPUSCROLL:
 			if ((w = !w))
@@ -522,7 +591,7 @@ namespace PPU
 			}
 			else
 			{
-				data_latch = read_memory(0x3FFF & v);
+				data_latch  = read_memory(0x3FFF & v);
 				data_buffer = read_memory(0x2FFF & v);
 			}
 			v = (~0x3FFF & v) | (0x3FFF & (v + ((0x04 & control_flags) ? 0x0020 : 0x0001)));
@@ -531,13 +600,13 @@ namespace PPU
 	}
 	void reset()
 	{
-		odd_frame    = false;
-		line         = 0;
-		dot_process  = dot_0_0;
-		dot	         = 0;
-		control_flags         = 0;
-		mask_flags         = 0;
-		status_flags       = 0;
+		odd_frame	 = false;
+		line		  = 0;
+		dot_process   = dot_0_0;
+		dot			  = 0;
+		control_flags = 0;
+		mask_flags	= 0;
+		status_flags  = 0;
 
 		framebuffer.fill(0);
 		nametable_ram.fill(0xFF);
