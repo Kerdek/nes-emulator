@@ -4,30 +4,30 @@
 
 namespace nes
 {
-	mapper2::mapper2(
-		nes::cartridge_info &   info,
-		std::vector<uint8_t> && prg,
-		std::vector<uint8_t> && chr) :
-		mapper(info, std::move(prg), std::move(chr))
-	{}
+    mapper2::mapper2(
+        nes::cartridge_info &   info,
+        std::vector<uint8_t> && prg,
+        std::vector<uint8_t> && chr) :
+        mapper(info, std::move(prg), std::move(chr))
+    {}
 
-	void mapper2::reset()
-	{
-		set_prg_map<16>(0, 0);
-		set_prg_map<16>(1, -1);
-		set_chr_map<8>(0, 0);
-	}
+    void mapper2::reset()
+    {
+        set_prg_map<16>(0, 0);
+        set_prg_map<16>(1, -1);
+        set_chr_map<8>(0, 0);
+    }
 
-	void mapper2::prg_write(uint16_t addr, uint8_t value)
-	{
-		if (addr >= 0x8000)
-			set_prg_map<16>(0, value);
-		else
-			throw std::runtime_error{ "Illegal write." };
-	}
+    void mapper2::prg_write(uint16_t addr, uint8_t value)
+    {
+        if (addr >= 0x8000)
+            set_prg_map<16>(0, value);
+        else
+            throw std::runtime_error{ "Illegal write." };
+    }
 
-	void mapper2::chr_write(uint16_t addr, uint8_t value)
-	{
-		chr[addr] = value;
-	}
+    void mapper2::chr_write(uint16_t addr, uint8_t value)
+    {
+        chr[addr] = value;
+    }
 }

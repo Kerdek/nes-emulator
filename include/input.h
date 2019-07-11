@@ -4,18 +4,18 @@
 
 namespace platform
 {
-	class input
-	{
-		uint8_t const * keys;
+    class input
+    {
+        uint8_t const * keys;
 
-		input(input const &) = delete;
-		input(input &&)		 = delete;
-		input & operator=(input const &) = delete;
-		input & operator=(input &&) = delete;
+        input(input const &) = delete;
+        input(input &&)      = delete;
+        input & operator=(input const &) = delete;
+        input & operator=(input &&) = delete;
 
-	public:
-		input();
+    public:
+        input();
 
-		uint8_t get_controller(int n) const;
-	};
+        uint8_t get_controller(int n) const;
+    };
 }
